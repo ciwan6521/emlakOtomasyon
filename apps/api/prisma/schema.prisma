@@ -1,0 +1,1307 @@
+// REOS — PostgreSQL schema (Prisma)
+// Multi-tenant (companyId on every tenant-scoped table), soft-delete (deletedAt),
+// audit-friendly, with tenant-leading composite indexes for query performance.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ENUMS
+
+enum Role {
+  SUPER_ADMIN
+  COMPANY_OWNER
+  BRANCH_MANAGER
+  SALES_AGENT
+  CALL_CENTER_AGENT
+  CONTENT_MANAGER
+  PHOTOGRAPHER
+  FINANCE_OFFICER
+}
+
+enum LeadStatus {
+  NEW
+  TO_CALL
+  CALLING
+  FOLLOW_UP
+  POTENTIAL
+  AGREED
+  IN_PORTFOLIO
+  PASSIVE
+  BLACKLIST
+}
+
+enum LeadSource {
+  FACEBOOK
+  INSTAGRAM
+  TELEGRAM
+  PORTAL
+  BOT
+  REFERRAL
+  WALK_IN
+  MANUAL
+}
+
+enum LeadKind {
+  OWNER
+  BUYER
+  TENANT_SEEKER
+}
+
+enum CallResult {
+  UNREACHABLE
+  BUSY
+  FOLLOW_UP
+  SELLING_OWN
+  WITH_COMPETITOR
+  HOT_LEAD
+  AGREED
+  NOT_INTERESTED
+  DEAL_IN_PROGRESS
+  CONVERTED
+}
+
+enum CallDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum PropertyStatus {
+  NEW
+  CONTACTED
+  NEGOTIATION
+  ACCEPTED
+  ONBOARDING_PENDING
+  ACTIVE_LISTING
+  SOLD
+  RENTED
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  VILLA
+  LAND
+  COMMERCIAL
+  OFFICE
+}
+
+enum ListingPurpose {
+  SALE
+  RENT
+}
+
+enum Region {
+  BUDVA
+  KOTOR
+  TIVAT
+  BAR
+  HERCEG_NOVI
+  PODGORICA
+  ULCINJ
+  CETINJE
+  OTHER
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+  DRONE
+  FLOORPLAN
+}
+
+enum Locale {
+  EN
+  TR
+  RU
+  ME
+}
+
+enum OnboardingStatus {
+  PENDING
+  SUBMITTED
+  CHANGES_REQUESTED
+  MISSING_INFO
+  READY_TO_PUBLISH
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum CustomerSegment {
+  HOT
+  WARM
+  COLD
+}
+
+enum CustomerIntent {
+  INVESTMENT
+  LIVING
+}
+
+enum CustomerKind {
+  BUYER
+  TENANT
+}
+
+enum FinancingType {
+  CASH
+  MORTGAGE
+}
+
+enum Residency {
+  CITIZEN
+  FOREIGN
+}
+
+enum BuildType {
+  NEW
+  OLD
+}
+
+enum OwnerRating {
+  EXCELLENT
+  GOOD
+  AVERAGE
+  DIFFICULT
+  PROBLEM
+  BLACKLIST
+}
+
+enum TaskType {
+  CALL
+  FOLLOW_UP
+  PHOTO_SHOOT
+  LISTING
+  CONTENT
+  MAINTENANCE
+  KEY_HANDOVER
+}
+
+enum TaskStatus {
+  BACKLOG
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DealStage {
+  LEAD
+  CONTACTED
+  QUALIFIED
+  OWNER_ACCEPTED
+  LISTING_CREATED
+  PUBLISHED
+  BUYER_INTERESTED
+  OFFER
+  DEAL_CLOSED
+  LOST
+}
+
+enum CommChannel {
+  WHATSAPP
+  TELEGRAM
+  SMS
+  EMAIL
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  CLICKED
+  FAILED
+}
+
+enum SocialChannel {
+  INSTAGRAM
+  FACEBOOK
+}
+
+enum SocialPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum DocumentType {
+  CONTRACT
+  TITLE_DEED
+  ID_DOCUMENT
+  FLOORPLAN
+  INVOICE
+  LEASE
+  INVENTORY
+  HANDOVER
+  OTHER
+}
+
+enum DocumentStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  SIGNED
+  ARCHIVED
+}
+
+enum CommissionStatus {
+  PENDING
+  INVOICED
+  PAID
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum NotificationType {
+  NEW_LEAD
+  NEW_CUSTOMER
+  NEW_MESSAGE
+  LEAD_ASSIGNED
+  APPOINTMENT
+  MATCH
+  DEAL
+  TASK
+  CALLBACK
+  NEW_PORTFOLIO
+  PRICE_UPDATED
+  RENT_DUE
+  RENT_OVERDUE
+  LEASE_EXPIRING
+  MAINTENANCE
+  DOCUMENT
+  SYSTEM
+}
+
+enum PricePeriod {
+  TOTAL
+  MONTHLY
+  NIGHTLY
+  WEEKLY
+}
+
+enum RentalTermType {
+  LONG_TERM
+  SHORT_TERM
+  SEASONAL
+}
+
+enum LeaseStatus {
+  DRAFT
+  APPLICATION
+  APPROVED
+  ACTIVE
+  NOTICE_GIVEN
+  EXPIRED
+  TERMINATED
+}
+
+enum RentalPipelineStage {
+  APPLICATION
+  SCREENING
+  LEASE_SIGNED
+  MOVE_IN
+  ACTIVE
+  NOTICE
+  VACATED
+}
+
+enum RentPaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  PARTIAL
+  WAIVED
+}
+
+enum DepositStatus {
+  HELD
+  PARTIALLY_RETURNED
+  RETURNED
+  FORFEITED
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum HandoverType {
+  CHECK_IN
+  CHECK_OUT
+  KEY_HANDOVER
+}
+
+enum AvailabilityKind {
+  BOOKED
+  BLOCKED
+  OWNER_USE
+  LEASE
+}
+
+enum AppointmentKind {
+  VIEWING
+  CHECK_IN
+  CHECK_OUT
+  KEY_HANDOVER
+  INSPECTION
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  OTHER
+}
+
+// IDENTITY / TENANT
+
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  logoUrl   String?
+  currency  String    @default("EUR")
+  locale    Locale    @default(EN)
+  settings  Json?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  branches        Branch[]
+  users           User[]
+  leads           Lead[]
+  calls           Call[]
+  properties      Property[]
+  customers       Customer[]
+  matches         Match[]
+  tasks           Task[]
+  deals           Deal[]
+  campaigns       MessageCampaign[]
+  socialPosts     SocialPost[]
+  onboarding      OnboardingSession[]
+  auditLogs       AuditLog[]
+  messageTemplates MessageTemplate[]
+  appointments    Appointment[]
+  documents       Document[]
+  commissions     Commission[]
+  invoices        Invoice[]
+  notifications   Notification[]
+  ownerProfiles   OwnerProfile[]
+  ownerConversations OwnerConversation[]
+  priceHistory    PriceHistory[]
+  leases          Lease[]
+  rentPayments    RentPayment[]
+  ownerPayouts    OwnerPayout[]
+  maintenanceRequests MaintenanceRequest[]
+  handoverRecords HandoverRecord[]
+  availabilityBlocks AvailabilityBlock[]
+
+  @@map("companies")
+}
+
+model Branch {
+  id        String    @id @default(cuid())
+  companyId String
+  name      String
+  region    Region
+  address   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  company Company @relation(fields: [companyId], references: [id])
+  users   User[]
+
+  @@index([companyId])
+  @@map("branches")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  companyId    String
+  branchId     String?
+  email        String
+  passwordHash String
+  fullName     String
+  phone        String?
+  avatarUrl    String?
+  roles        Role[]
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  company       Company        @relation(fields: [companyId], references: [id])
+  branch        Branch?        @relation(fields: [branchId], references: [id])
+  refreshTokens RefreshToken[]
+  assignedLeads Lead[]         @relation("LeadAssignee")
+  calls         Call[]
+  assignedTasks Task[]         @relation("TaskAssignee")
+  assignedCustomers Customer[] @relation("CustomerAssignee")
+
+  @@unique([companyId, email])
+  @@index([companyId, branchId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  userAgent String?
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// LEAD / CALL CENTER
+
+model Lead {
+  id           String     @id @default(cuid())
+  companyId    String
+  branchId     String?
+  kind         LeadKind   @default(BUYER)
+  fullName     String
+  phone        String
+  email        String?
+  source       LeadSource @default(MANUAL)
+  status       LeadStatus @default(NEW)
+  score        Int        @default(0)
+  region       Region?
+  listingUrl   String?
+  listingPhotoUrl String?
+  listingPrice Decimal?  @db.Decimal(14, 2)
+  listingRooms String?
+  lastCallAt   DateTime?
+  lastCallResult CallResult?
+  lastNote     String?
+  ownerRating  OwnerRating?
+  assignedToId String?
+  notes        String?
+  dedupHash    String?
+  rawPayload   Json?
+  followUpAt   DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  company    Company        @relation(fields: [companyId], references: [id])
+  assignedTo User?          @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  activities LeadActivity[]
+  calls      Call[]
+  property   Property?
+
+  @@index([companyId, status])
+  @@index([companyId, assignedToId])
+  @@index([companyId, score])
+  @@index([companyId, dedupHash])
+  @@index([companyId, createdAt])
+  @@map("leads")
+}
+
+model LeadActivity {
+  id        String   @id @default(cuid())
+  companyId String
+  leadId    String
+  actorId   String?
+  type      String // STATUS_CHANGE | NOTE | ASSIGNMENT | CALL | SYSTEM
+  fromValue String?
+  toValue   String?
+  message   String?
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, leadId, createdAt])
+  @@map("lead_activities")
+}
+
+model Call {
+  id          String        @id @default(cuid())
+  companyId   String
+  branchId    String?
+  leadId      String
+  agentId     String?
+  direction   CallDirection @default(OUTBOUND)
+  result      CallResult?
+  notes       String?
+  durationSec Int?
+  followUpAt  DateTime?
+  startedAt   DateTime      @default(now())
+  endedAt     DateTime?
+  createdAt   DateTime      @default(now())
+  deletedAt   DateTime?
+
+  company Company @relation(fields: [companyId], references: [id])
+  lead    Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agent   User?   @relation(fields: [agentId], references: [id])
+
+  @@index([companyId, agentId, createdAt])
+  @@index([companyId, leadId])
+  @@index([companyId, result])
+  @@map("calls")
+}
+
+// PROPERTY / ONBOARDING
+
+model Property {
+  id          String         @id @default(cuid())
+  companyId   String
+  branchId    String?
+  leadId      String?        @unique
+  reference   String
+  title       String
+  type        PropertyType   @default(APARTMENT)
+  purpose     ListingPurpose @default(SALE)
+  status      PropertyStatus @default(NEW)
+  region      Region
+  address     String
+  latitude    Float?
+  longitude   Float?
+  price       Decimal        @db.Decimal(14, 2)
+  pricePeriod PricePeriod    @default(TOTAL)
+  rentalTermType RentalTermType?
+  availableFrom DateTime?
+  minLeaseMonths Int?
+  minStayNights  Int?
+  nightlyRate    Decimal?     @db.Decimal(14, 2)
+  depositAmount  Decimal?     @db.Decimal(14, 2)
+  managementFeePct Float?
+  strChannels    Json?
+  currency    String         @default("EUR")
+  rooms       String // "1+1", "2+1"
+  sizeM2      Float
+  neighborhood String?
+  floor       Int?
+  buildType   BuildType?
+  monthlyDues Decimal?       @db.Decimal(10, 2)
+  hasElevator Boolean        @default(false)
+  hasParking  Boolean        @default(false)
+  hasBalcony  Boolean        @default(false)
+  isFurnished Boolean        @default(false)
+  hasSeaView  Boolean        @default(false)
+  hasPool     Boolean        @default(false)
+  hasGarden   Boolean        @default(false)
+  viewCount   Int            @default(0)
+  sentCount   Int            @default(0)
+  favoriteCount Int          @default(0)
+  publicSlug    String?
+  createdById   String?
+  updatedById   String?
+  ownerName   String
+  ownerPhone  String
+  ownerEmail  String?
+  description String?
+  dedupHash   String?
+  publishedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  deletedAt   DateTime?
+
+  company      Company              @relation(fields: [companyId], references: [id])
+  lead         Lead?                @relation(fields: [leadId], references: [id])
+  media        PropertyMedia[]
+  translations PropertyTranslation[]
+  onboarding   OnboardingSession?
+  matches      Match[]
+  deals        Deal[]
+  leases       Lease[]
+  rentPayments RentPayment[]
+  ownerPayouts OwnerPayout[]
+  maintenanceRequests MaintenanceRequest[]
+  handoverRecords HandoverRecord[]
+  availabilityBlocks AvailabilityBlock[]
+
+  @@unique([companyId, reference])
+  @@index([companyId, status])
+  @@index([companyId, region, status])
+  @@index([companyId, region, status, price])
+  @@index([companyId, rooms])
+  @@index([companyId, type, purpose])
+  @@index([companyId, dedupHash])
+  @@index([companyId, latitude, longitude])
+  @@map("properties")
+}
+
+model PropertyMedia {
+  id         String    @id @default(cuid())
+  companyId  String
+  propertyId String
+  type       MediaType @default(PHOTO)
+  url        String
+  thumbUrl   String?
+  position   Int       @default(0)
+  isCover    Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, propertyId, position])
+  @@map("property_media")
+}
+
+model PropertyTranslation {
+  id          String   @id @default(cuid())
+  propertyId  String
+  locale      Locale
+  title       String
+  description String
+  aiGenerated Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, locale])
+  @@map("property_translations")
+}
+
+model OnboardingSession {
+  id          String           @id @default(cuid())
+  companyId   String
+  propertyId  String?          @unique
+  leadId      String?
+  token       String           @unique
+  status      OnboardingStatus @default(PENDING)
+  ownerName   String?
+  ownerPhone  String?
+  payload     Json? // owner-submitted data before approval
+  reviewerId  String?
+  reviewNotes String?
+  expiresAt   DateTime
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  deletedAt   DateTime?
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  property Property? @relation(fields: [propertyId], references: [id])
+
+  @@index([companyId, status])
+  @@map("onboarding_sessions")
+}
+
+// CUSTOMER CRM / MATCHING
+
+model Customer {
+  id               String          @id @default(cuid())
+  companyId        String
+  branchId         String?
+  fullName         String
+  phone            String
+  email            String?
+  whatsapp         String?
+  lastContactAt    DateTime?
+  kind             CustomerKind    @default(BUYER)
+  intent           CustomerIntent  @default(LIVING)
+  segment          CustomerSegment @default(WARM)
+  budgetMin        Decimal         @default(0) @db.Decimal(14, 2)
+  budgetMax        Decimal         @default(0) @db.Decimal(14, 2)
+  preferredRegions Region[]
+  propertyType     PropertyType?
+  roomRequirement  String?
+  financing        FinancingType?
+  residency        Residency?
+  preferredPurpose ListingPurpose?
+  moveInDate       DateTime?
+  leaseMonths      Int?
+  petsAllowed      Boolean?
+  occupants        Int?
+  assignedToId     String?
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+
+  company    Company  @relation(fields: [companyId], references: [id])
+  assignedTo User?    @relation("CustomerAssignee", fields: [assignedToId], references: [id])
+  matches    Match[]
+  deals      Deal[]
+  leases     Lease[]
+
+  @@index([companyId, segment])
+  @@index([companyId, assignedToId])
+  @@index([companyId, budgetMin, budgetMax])
+  @@map("customers")
+}
+
+model OwnerProfile {
+  id        String      @id @default(cuid())
+  companyId String
+  name      String
+  phone     String
+  email     String?
+  whatsapp  String?
+  telegram  String?
+  address   String?
+  rating    OwnerRating @default(AVERAGE)
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, phone])
+  @@index([companyId])
+  @@index([companyId, rating])
+  @@map("owner_profiles")
+}
+
+model OwnerConversation {
+  id        String   @id @default(cuid())
+  companyId String
+  ownerPhone String
+  channel   String   @default("CALL") // CALL | WHATSAPP | TELEGRAM | NOTE
+  message   String
+  actorId   String?
+  actorName String?
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, ownerPhone, createdAt])
+  @@map("owner_conversations")
+}
+
+model PriceHistory {
+  id         String   @id @default(cuid())
+  companyId  String
+  propertyId String
+  oldPrice   Decimal  @db.Decimal(14, 2)
+  newPrice   Decimal  @db.Decimal(14, 2)
+  actorId    String?
+  createdAt  DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, propertyId, createdAt])
+  @@map("price_history")
+}
+
+model Match {
+  id         String   @id @default(cuid())
+  companyId  String
+  propertyId String
+  customerId String
+  score      Int
+  reasons    String[]
+  notified   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, customerId])
+  @@index([companyId, propertyId, score])
+  @@index([companyId, customerId, score])
+  @@map("matches")
+}
+
+// TASKS / PIPELINE
+
+model Task {
+  id              String       @id @default(cuid())
+  companyId       String
+  branchId        String?
+  title           String
+  description     String?
+  type            TaskType     @default(FOLLOW_UP)
+  status          TaskStatus   @default(BACKLOG)
+  priority        TaskPriority @default(MEDIUM)
+  assigneeId      String?
+  dueAt           DateTime?
+  position        Int          @default(0)
+  relatedEntity   String?
+  relatedEntityId String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
+
+  company  Company @relation(fields: [companyId], references: [id])
+  assignee User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  @@index([companyId, status, position])
+  @@index([companyId, assigneeId, status])
+  @@map("tasks")
+}
+
+model Deal {
+  id          String    @id @default(cuid())
+  companyId   String
+  branchId    String?
+  title       String
+  stage       DealStage @default(LEAD)
+  value       Decimal   @default(0) @db.Decimal(14, 2)
+  currency    String    @default("EUR")
+  probability Int       @default(10)
+  propertyId  String?
+  customerId  String?
+  ownerId     String?
+  closedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  property Property? @relation(fields: [propertyId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([companyId, stage])
+  @@index([companyId, ownerId])
+  @@map("deals")
+}
+
+// COMMUNICATION / SOCIAL
+
+model MessageTemplate {
+  id        String      @id @default(cuid())
+  companyId String
+  name      String
+  channel   CommChannel
+  locale    Locale      @default(EN)
+  subject   String?
+  body      String // supports {{placeholders}}
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime?
+
+  company   Company           @relation(fields: [companyId], references: [id])
+  campaigns MessageCampaign[]
+
+  @@index([companyId, channel])
+  @@map("message_templates")
+}
+
+model MessageCampaign {
+  id          String      @id @default(cuid())
+  companyId   String
+  branchId    String?
+  name        String
+  channel     CommChannel
+  templateId  String
+  audience    Json // resolved recipient list / filter
+  dispatchedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  company    Company           @relation(fields: [companyId], references: [id])
+  template   MessageTemplate   @relation(fields: [templateId], references: [id])
+  deliveries MessageDelivery[]
+
+  @@index([companyId, channel])
+  @@map("message_campaigns")
+}
+
+model MessageDelivery {
+  id           String         @id @default(cuid())
+  companyId    String
+  campaignId   String? // null for direct/ad-hoc sends (e.g. Call Assist)
+  recipientId  String? // customer id
+  recipient    String // phone/email
+  channel      CommChannel
+  status       DeliveryStatus @default(QUEUED)
+  trackingId   String         @unique @default(cuid())
+  body         String? // rendered message body (direct sends)
+  context      String? // origin tag, e.g. "CALL_ASSIST"
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  clickedAt    DateTime?
+  errorMessage String?
+  createdAt    DateTime       @default(now())
+
+  campaign MessageCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, campaignId, status])
+  @@index([companyId, context, createdAt])
+  @@map("message_deliveries")
+}
+
+model SocialPost {
+  id          String           @id @default(cuid())
+  companyId   String
+  branchId    String?
+  propertyId  String?
+  channels    SocialChannel[]
+  caption     String
+  mediaUrls   String[]
+  status      SocialPostStatus @default(DRAFT)
+  scheduleAt  DateTime?
+  publishedAt DateTime?
+  repostOfId  String?
+  repostStrategy String?
+  externalRefs Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  deletedAt   DateTime?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, status, scheduleAt])
+  @@map("social_posts")
+}
+
+// AUDIT
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  companyId  String
+  actorId    String?
+  actorEmail String?
+  action     String // CREATE | UPDATE | DELETE | TRANSITION | REVEAL | LOGIN ...
+  entity     String
+  entityId   String?
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, entity, createdAt])
+  @@index([companyId, actorId, createdAt])
+  @@map("audit_logs")
+}
+
+// APPOINTMENTS / VIEWINGS
+
+model Appointment {
+  id         String            @id @default(cuid())
+  companyId  String
+  branchId   String?
+  title      String
+  propertyId String?
+  customerId String?
+  leadId     String?
+  agentId    String?
+  startAt    DateTime
+  endAt      DateTime?
+  location   String?
+  status     AppointmentStatus @default(SCHEDULED)
+  kind       AppointmentKind   @default(VIEWING)
+  notes      String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  deletedAt  DateTime?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, startAt])
+  @@index([companyId, agentId, startAt])
+  @@index([companyId, status])
+  @@index([companyId, propertyId])
+  @@map("appointments")
+}
+
+// DOCUMENTS
+
+model Document {
+  id           String         @id @default(cuid())
+  companyId    String
+  type         DocumentType   @default(OTHER)
+  status       DocumentStatus @default(DRAFT)
+  name         String
+  url          String
+  mimeType     String?
+  sizeBytes    Int?
+  propertyId   String?
+  dealId       String?
+  customerId   String?
+  uploadedById String?
+  signerName   String?
+  signedAt     DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, propertyId])
+  @@index([companyId, dealId])
+  @@index([companyId, type, status])
+  @@map("documents")
+}
+
+// FINANCE — COMMISSIONS / INVOICES
+
+model Commission {
+  id         String           @id @default(cuid())
+  companyId  String
+  dealId     String
+  agentId    String?
+  baseAmount Decimal          @default(0) @db.Decimal(14, 2)
+  ratePct    Decimal          @default(0) @db.Decimal(5, 2)
+  amount     Decimal          @default(0) @db.Decimal(14, 2)
+  currency   String           @default("EUR")
+  status     CommissionStatus @default(PENDING)
+  note       String?
+  paidAt     DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  deletedAt  DateTime?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, status])
+  @@index([companyId, agentId, status])
+  @@index([companyId, dealId])
+  @@map("commissions")
+}
+
+model Invoice {
+  id         String        @id @default(cuid())
+  companyId  String
+  number     String
+  customerId String?
+  dealId     String?
+  amount     Decimal       @default(0) @db.Decimal(14, 2)
+  currency   String        @default("EUR")
+  status     InvoiceStatus @default(DRAFT)
+  issuedAt   DateTime?
+  dueAt      DateTime?
+  paidAt     DateTime?
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  deletedAt  DateTime?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, number])
+  @@index([companyId, status])
+  @@map("invoices")
+}
+
+// NOTIFICATIONS
+
+model Notification {
+  id        String           @id @default(cuid())
+  companyId String
+  userId    String
+  type      NotificationType @default(SYSTEM)
+  title     String
+  body      String?
+  link      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, userId, read, createdAt])
+  @@map("notifications")
+}
+
+// RENTALS — LEASES / PAYMENTS / PAYOUTS / MAINTENANCE / STR
+
+model Lease {
+  id               String              @id @default(cuid())
+  companyId        String
+  branchId         String?
+  propertyId       String
+  customerId       String
+  status           LeaseStatus         @default(DRAFT)
+  pipelineStage    RentalPipelineStage @default(APPLICATION)
+  startDate        DateTime
+  endDate          DateTime
+  monthlyRent      Decimal             @db.Decimal(14, 2)
+  depositAmount    Decimal             @default(0) @db.Decimal(14, 2)
+  depositStatus    DepositStatus       @default(HELD)
+  managementFeePct Float?
+  rentDueDay       Int                 @default(1)
+  notes            String?
+  signedAt         DateTime?
+  moveInAt         DateTime?
+  moveOutAt        DateTime?
+  renewedFromId    String?
+  agentId          String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  deletedAt        DateTime?
+
+  company    Company      @relation(fields: [companyId], references: [id])
+  property   Property     @relation(fields: [propertyId], references: [id])
+  customer   Customer     @relation(fields: [customerId], references: [id])
+  payments   RentPayment[]
+  handovers  HandoverRecord[]
+  maintenance MaintenanceRequest[]
+
+  @@index([companyId, status])
+  @@index([companyId, propertyId])
+  @@index([companyId, customerId])
+  @@index([companyId, endDate])
+  @@map("leases")
+}
+
+model RentPayment {
+  id          String            @id @default(cuid())
+  companyId   String
+  leaseId     String
+  propertyId  String
+  dueDate     DateTime
+  amount      Decimal           @db.Decimal(14, 2)
+  paidAmount  Decimal           @default(0) @db.Decimal(14, 2)
+  status      RentPaymentStatus @default(PENDING)
+  paidAt      DateTime?
+  method      PaymentMethod?
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  lease    Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([companyId, leaseId, dueDate])
+  @@index([companyId, status, dueDate])
+  @@index([companyId, propertyId])
+  @@map("rent_payments")
+}
+
+model OwnerPayout {
+  id             String       @id @default(cuid())
+  companyId      String
+  propertyId     String
+  ownerPhone     String
+  ownerName      String?
+  periodStart    DateTime
+  periodEnd      DateTime
+  grossRent      Decimal      @db.Decimal(14, 2)
+  managementFee  Decimal      @default(0) @db.Decimal(14, 2)
+  expenses       Decimal      @default(0) @db.Decimal(14, 2)
+  netAmount      Decimal      @db.Decimal(14, 2)
+  status         PayoutStatus @default(PENDING)
+  paidAt         DateTime?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([companyId, propertyId, periodStart])
+  @@index([companyId, status])
+  @@map("owner_payouts")
+}
+
+model MaintenanceRequest {
+  id           String              @id @default(cuid())
+  companyId    String
+  propertyId   String
+  leaseId      String?
+  title        String
+  description  String?
+  status       MaintenanceStatus   @default(OPEN)
+  priority     MaintenancePriority @default(MEDIUM)
+  reportedBy   String?
+  assignedToId String?
+  completedAt  DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  deletedAt    DateTime?
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+  lease    Lease?   @relation(fields: [leaseId], references: [id])
+
+  @@index([companyId, propertyId, status])
+  @@index([companyId, status, priority])
+  @@map("maintenance_requests")
+}
+
+model HandoverRecord {
+  id          String       @id @default(cuid())
+  companyId   String
+  leaseId     String
+  propertyId  String
+  type        HandoverType
+  checklist   Json?
+  keysGiven   Int?
+  notes       String?
+  actorId     String?
+  actorName   String?
+  completedAt DateTime     @default(now())
+  createdAt   DateTime     @default(now())
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  lease    Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([companyId, leaseId])
+  @@index([companyId, propertyId])
+  @@map("handover_records")
+}
+
+model AvailabilityBlock {
+  id          String           @id @default(cuid())
+  companyId   String
+  propertyId  String
+  startDate   DateTime
+  endDate     DateTime
+  kind        AvailabilityKind @default(BOOKED)
+  source      String           @default("MANUAL")
+  externalRef String?
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, propertyId, startDate, endDate])
+  @@map("availability_blocks")
+}

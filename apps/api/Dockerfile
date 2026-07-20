@@ -1,0 +1,25 @@
+# ── REOS API (NestJS) ─────────────────────────────────────────
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+COPY tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/
+COPY apps/api/package.json apps/api/
+RUN npm install
+COPY packages/shared packages/shared
+COPY apps/api apps/api
+RUN npm run prisma:generate --workspace @reos/api
+RUN npm run build --workspace @reos/shared
+RUN npm run build --workspace @reos/api
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages/shared ./packages/shared
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+WORKDIR /app/apps/api
+EXPOSE 4000
+CMD ["node", "dist/main.js"]
