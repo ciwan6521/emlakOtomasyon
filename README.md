@@ -46,14 +46,19 @@ npm run dev
 | Sales Agent    | agent@adriatic.me      | Passw0rd! |
 | Call Center    | callcenter@adriatic.me | Passw0rd! |
 
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for production deployment with Docker.
+
 ## Scripts
 
-| Command              | Description                    |
+| Command | Description |
 | -------------------- | ------------------------------ |
-| `npm run dev`        | Start API and web in dev mode  |
-| `npm run build`      | Build all workspaces           |
-| `npm run typecheck`  | TypeScript check               |
-| `npm run infra:up`   | Start Postgres, Redis, MinIO   |
-| `npm run infra:down` | Stop Docker services           |
+| `npm run dev` | Start API and web in dev mode |
+| `npm run build` | Build all workspaces |
+| `npm run typecheck` | TypeScript check |
+| `npm run infra:up` | Start Postgres, Redis, MinIO (dev) |
+| `npm run infra:down` | Stop dev Docker services |
+| `npm run prod:build` | Build production Docker images |
+| `npm run prod:up` | Start production stack |
+| `npm run prod:down` | Stop production stack |
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module overview and event flow.

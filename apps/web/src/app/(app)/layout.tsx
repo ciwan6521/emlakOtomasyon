@@ -7,10 +7,12 @@ import { Topbar } from "@/components/layout/topbar";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { useAuth } from "@/lib/auth-store";
 import { useRealtime } from "@/lib/use-realtime";
+import { useT } from "@/lib/i18n/locale-context";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, hydrate } = useAuth();
   const router = useRouter();
+  const t = useT();
   useRealtime();
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center text-sm text-muted-foreground">
-        Loading workspace…
+        {t("common.loading")}
       </div>
     );
   }

@@ -23,10 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { useT } from "@/lib/i18n/locale-context";
 import {
   BuildType,
   ListingPurpose,
   MediaType,
+  LOCALES,
   PricePeriod,
   PRICE_PERIOD_SUFFIX,
   RentalTermType,
@@ -69,6 +71,7 @@ export function PropertyDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const t = useT();
   const qc = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -184,7 +187,7 @@ export function PropertyDialog({
   const translate = useMutation({
     mutationFn: () =>
       api.post(`/properties/${property!.id}/translate`, {
-        locales: ["EN", "TR", "RU", "ME"],
+        locales: LOCALES,
       }),
   });
 
@@ -571,10 +574,10 @@ export function PropertyDialog({
           >
             <Languages className="mr-1.5 h-4 w-4" />
             {translate.isPending
-              ? "Queuing…"
+              ? t("property.translateQueuing")
               : translate.isSuccess
-                ? "Translation queued"
-                : "Generate translations"}
+                ? t("property.translateQueued")
+                : t("property.translate")}
           </Button>
           <Button
             type="button"

@@ -1,0 +1,16 @@
+node_modules
+.docker-data
+.git
+.next
+dist
+build
+out
+coverage
+*.log
+.env
+.env.local
+.env.*.local
+!.env.production.example
+apps/web/.env.local
+*.tsbuildinfo
+.cursor

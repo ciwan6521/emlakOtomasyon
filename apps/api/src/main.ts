@@ -48,14 +48,27 @@ async function bootstrap(): Promise<void> {
   );
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle("REOS API")
-    .setDescription("REOS REST API")
-    .setVersion("1.0")
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup(`${globalPrefix}/docs`, app, document);
+  const isProd = config.get<string>("env") === "production";
+  if (isProd) {
+    const accessSecret = config.get<string>("jwt.accessSecret") ?? "";
+    const refreshSecret = config.get<string>("jwt.refreshSecret") ?? "";
+    const weak = (s: string) =>
+      s.length < 32 || /change_me|dev_.*_secret/i.test(s);
+    if (weak(accessSecret) || weak(refreshSecret)) {
+      throw new Error(
+        "Set strong JWT_ACCESS_SECRET and JWT_REFRESH_SECRET (32+ chars) in production",
+      );
+    }
+  } else {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle("REOS API")
+      .setDescription("REOS REST API")
+      .setVersion("1.0")
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup(`${globalPrefix}/docs`, app, document);
+  }
 
   const port = config.get<number>("api.port")!;
   await app.listen(port);

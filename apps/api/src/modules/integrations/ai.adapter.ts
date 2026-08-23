@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Locale } from "@reos/shared";
+import { Locale, LOCALE_LABELS } from "@reos/shared";
 
 export interface ListingContext {
   title: string;
@@ -133,12 +133,7 @@ export class AiAdapter {
   }
 }
 
-const LOCALE_NAMES: Record<Locale, string> = {
-  [Locale.EN]: "English",
-  [Locale.TR]: "Turkish",
-  [Locale.RU]: "Russian",
-  [Locale.ME]: "Montenegrin",
-};
+const LOCALE_NAMES: Record<Locale, string> = LOCALE_LABELS;
 
 const SIM_TEMPLATES: Record<Locale, (c: ListingContext) => string> = {
   [Locale.EN]: (c) =>

@@ -7,6 +7,8 @@ import { NAV_ITEMS } from "@/lib/nav";
 import { useAuth } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 import { Scope } from "@reos/shared";
+import { GROUP_LABEL_KEYS, NAV_LABEL_KEYS } from "@/lib/i18n/messages";
+import { useT } from "@/lib/i18n/locale-context";
 
 const GROUPS = [
   "Operations",
@@ -19,6 +21,7 @@ const GROUPS = [
 export function Sidebar() {
   const pathname = usePathname();
   const can = useAuth((s) => s.can);
+  const t = useT();
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r bg-card/40 lg:flex">
@@ -45,7 +48,7 @@ export function Sidebar() {
           return (
             <div key={group}>
               <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                {group}
+                {t(GROUP_LABEL_KEYS[group])}
               </p>
               <div className="space-y-0.5">
                 {items.map((item) => {
@@ -64,7 +67,9 @@ export function Sidebar() {
                       )}
                     >
                       <item.icon className="h-4 w-4" />
-                      {item.label}
+                      {NAV_LABEL_KEYS[item.href]
+                        ? t(NAV_LABEL_KEYS[item.href])
+                        : item.label}
                     </Link>
                   );
                 })}

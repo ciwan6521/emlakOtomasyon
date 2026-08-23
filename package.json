@@ -23,7 +23,12 @@
     "prisma:migrate": "npm run prisma:migrate --workspace @reos/api",
     "prisma:seed": "npm run prisma:seed --workspace @reos/api",
     "infra:up": "docker compose up -d postgres redis minio",
-    "infra:down": "docker compose down"
+    "infra:down": "docker compose down",
+    "prod:build": "docker compose --env-file .env.production -f docker-compose.prod.yml build",
+    "prod:up": "docker compose --env-file .env.production -f docker-compose.prod.yml up -d",
+    "prod:down": "docker compose --env-file .env.production -f docker-compose.prod.yml down",
+    "prod:logs": "docker compose --env-file .env.production -f docker-compose.prod.yml logs -f",
+    "prod:ps": "docker compose --env-file .env.production -f docker-compose.prod.yml ps"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

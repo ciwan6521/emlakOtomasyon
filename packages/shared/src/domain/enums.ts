@@ -168,6 +168,13 @@ export enum Locale {
   ME = "ME",
 }
 
+export const LOCALE_LABELS: Record<Locale, string> = {
+  [Locale.EN]: "English",
+  [Locale.TR]: "Turkish",
+  [Locale.RU]: "Russian",
+  [Locale.ME]: "Montenegrin (Crnogorski)",
+};
+
 export enum OnboardingStatus {
   PENDING = "PENDING",
   SUBMITTED = "SUBMITTED",

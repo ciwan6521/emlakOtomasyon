@@ -26,7 +26,8 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
-import { Locale, Permission, type CompanySettingsDto } from "@reos/shared";
+import { Locale, LOCALE_LABELS, Permission, type CompanySettingsDto } from "@reos/shared";
+import { useLocale, useT } from "@/lib/i18n/locale-context";
 
 interface CompanyDto {
   id: string;
@@ -102,6 +103,8 @@ function Toggle({
 export default function SettingsPage() {
   const { can } = useAuth();
   const qc = useQueryClient();
+  const { setLocale } = useLocale();
+  const t = useT();
   const canManage = can(Permission.USER_MANAGE);
   const [form, setForm] = useState({
     name: "",
@@ -140,7 +143,10 @@ export default function SettingsPage() {
 
   const saveProfile = useMutation({
     mutationFn: () => api.patch("/company", form),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["company"] }),
+    onSuccess: () => {
+      setLocale(form.locale);
+      qc.invalidateQueries({ queryKey: ["company"] });
+    },
   });
 
   const saveSettings = useMutation({
@@ -190,7 +196,7 @@ export default function SettingsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Default language</Label>
+              <Label>{t("settings.defaultLanguage")}</Label>
               <Select
                 value={form.locale}
                 disabled={!canManage}
@@ -202,7 +208,7 @@ export default function SettingsPage() {
                 <SelectContent>
                   {Object.values(Locale).map((l) => (
                     <SelectItem key={l} value={l}>
-                      {l}
+                      {LOCALE_LABELS[l]}
                     </SelectItem>
                   ))}
                 </SelectContent>

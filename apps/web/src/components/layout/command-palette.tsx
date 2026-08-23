@@ -13,11 +13,14 @@ import {
 import { NAV_ITEMS } from "@/lib/nav";
 import { useAuth } from "@/lib/auth-store";
 import { Scope } from "@reos/shared";
+import { NAV_LABEL_KEYS } from "@/lib/i18n/messages";
+import { useT } from "@/lib/i18n/locale-context";
 
 export function CommandPalette() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
   const can = useAuth((s) => s.can);
+  const t = useT();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -46,8 +49,8 @@ export function CommandPalette() {
     <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput placeholder="Search pages, leads, properties…" />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
-        <CommandGroup heading="Navigate">
+        <CommandEmpty>{t("common.noResults")}</CommandEmpty>
+        <CommandGroup heading={t("common.navigate")}>
           {items.map((item) => (
             <CommandItem
               key={item.href}
@@ -55,7 +58,9 @@ export function CommandPalette() {
               onSelect={() => go(item.href)}
             >
               <item.icon className="h-4 w-4" />
-              {item.label}
+              {NAV_LABEL_KEYS[item.href]
+                ? t(NAV_LABEL_KEYS[item.href])
+                : item.label}
             </CommandItem>
           ))}
         </CommandGroup>
