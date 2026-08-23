@@ -4,7 +4,7 @@
   "private": true,
   "description": "REOS API (NestJS).",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && tsc -p prisma/tsconfig.seed.json",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
@@ -15,10 +15,10 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "tsc -p prisma/tsconfig.seed.json && node prisma/dist/seed.js"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "node prisma/dist/seed.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
