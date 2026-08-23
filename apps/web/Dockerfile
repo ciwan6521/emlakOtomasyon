@@ -17,6 +17,7 @@ COPY packages/shared packages/shared
 COPY apps/web apps/web
 RUN npm run build --workspace @reos/shared
 RUN npm run build --workspace @reos/web
+RUN mkdir -p apps/web/public
 
 FROM node:20-alpine AS runner
 WORKDIR /app
