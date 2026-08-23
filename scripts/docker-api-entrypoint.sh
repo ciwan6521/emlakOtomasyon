@@ -10,7 +10,13 @@ if [ "${SKIP_MIGRATE:-false}" != "true" ]; then
 
   if [ "${RUN_SEED:-false}" = "true" ]; then
     echo "[entrypoint] Seeding database..."
+    set +e
     npx prisma db seed
+    seed_exit=$?
+    set -e
+    if [ "$seed_exit" -ne 0 ]; then
+      echo "[entrypoint] WARN: seed failed (exit $seed_exit); starting API anyway"
+    fi
   fi
 fi
 

@@ -3,6 +3,12 @@ import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+async function ensureBranch(companyId: string, name: string, region: 'BUDVA' | 'KOTOR' | 'TIVAT' | 'BAR') {
+  const existing = await prisma.branch.findFirst({ where: { companyId, name } });
+  if (existing) return existing;
+  return prisma.branch.create({ data: { companyId, name, region } });
+}
+
 async function main(): Promise<void> {
   const password = await bcrypt.hash('Passw0rd!', 12);
 
@@ -12,8 +18,15 @@ async function main(): Promise<void> {
     create: { name: 'Adriatic Real Estate', slug: 'adriatic', currency: 'EUR', locale: 'EN' },
   });
 
-  const budva = await prisma.branch.create({ data: { companyId: company.id, name: 'Budva HQ', region: 'BUDVA' } });
-  const kotor = await prisma.branch.create({ data: { companyId: company.id, name: 'Kotor Office', region: 'KOTOR' } });
+  const existingUsers = await prisma.user.count({ where: { companyId: company.id } });
+  if (existingUsers > 1) {
+    // eslint-disable-next-line no-console
+    console.log(`Seed skipped: ${existingUsers} users already exist for ${company.slug}`);
+    return;
+  }
+
+  const budva = await ensureBranch(company.id, 'Budva HQ', 'BUDVA');
+  const kotor = await ensureBranch(company.id, 'Kotor Office', 'KOTOR');
 
   const mkUser = (email: string, fullName: string, roles: string[], branchId?: string) =>
     prisma.user.upsert({
@@ -111,9 +124,14 @@ async function main(): Promise<void> {
   }
 
   // Message template
-  await prisma.messageTemplate.create({
-    data: { companyId: company.id, name: 'New listings (EN)', channel: 'WHATSAPP', body: 'Hi {{name}}, we found new properties matching your criteria. Take a look!' },
+  const template = await prisma.messageTemplate.findFirst({
+    where: { companyId: company.id, name: 'New listings (EN)' },
   });
+  if (!template) {
+    await prisma.messageTemplate.create({
+      data: { companyId: company.id, name: 'New listings (EN)', channel: 'WHATSAPP', body: 'Hi {{name}}, we found new properties matching your criteria. Take a look!' },
+    });
+  }
 
   // eslint-disable-next-line no-console
   console.log(`Seeded company ${company.name} with users, leads, properties, customers. Owner: ${owner.email}`);
