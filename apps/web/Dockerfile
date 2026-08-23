@@ -9,6 +9,8 @@ ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 COPY package*.json ./
 COPY tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/
+COPY packages/shared/tsconfig.json packages/shared/
+COPY packages/shared/src packages/shared/src/
 COPY apps/web/package.json apps/web/
 RUN npm ci --ignore-scripts
 COPY packages/shared packages/shared

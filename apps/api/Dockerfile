@@ -3,6 +3,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/
+COPY packages/shared/tsconfig.json packages/shared/
+COPY packages/shared/src packages/shared/src/
 COPY apps/api/package.json apps/api/
 RUN npm ci --ignore-scripts
 COPY packages/shared packages/shared
