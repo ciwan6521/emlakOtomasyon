@@ -26,6 +26,7 @@ export class CreateCustomerDto {
   @IsString() @MaxLength(40) phone!: string;
   @IsOptional() @IsString() email?: string;
   @IsOptional() @IsString() @MaxLength(40) whatsapp?: string;
+  @IsOptional() @IsString() @MaxLength(64) viberId?: string;
   @IsEnum(CustomerKind) kind!: CustomerKind;
   @IsEnum(CustomerIntent) intent!: CustomerIntent;
   @IsOptional() @IsEnum(CustomerSegment) segment?: CustomerSegment;
@@ -63,6 +64,7 @@ export class UpdateCustomerDto {
   @IsOptional() @Type(() => Number) @IsInt() occupants?: number;
   @IsOptional() @IsString() @MaxLength(2000) notes?: string;
   @IsOptional() @IsString() @MaxLength(40) whatsapp?: string;
+  @IsOptional() @IsString() @MaxLength(64) viberId?: string;
 }
 
 export class ListCustomersQuery extends PaginationQuery {

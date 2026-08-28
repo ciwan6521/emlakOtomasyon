@@ -40,7 +40,6 @@ export class AnalyticsService {
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const todayEnd = new Date(today);
     todayEnd.setDate(todayEnd.getDate() + 1);
-    const now = new Date();
 
     const [
       dailyLeads,

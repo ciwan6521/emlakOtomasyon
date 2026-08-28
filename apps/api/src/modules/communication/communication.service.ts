@@ -24,6 +24,8 @@ import {
 
 import { CreateCampaignDto, CreateTemplateDto } from "./dto";
 
+import { advancesDelivery } from "./domain/delivery-status";
+
 @Injectable()
 export class CommunicationService {
   constructor(
@@ -156,15 +158,15 @@ export class CommunicationService {
       where: { id: { in: audience.recipientIds } },
     });
 
+    let skipped = 0;
+
     for (const c of customers) {
-      const recipient =
-        campaign.channel === CommChannel.EMAIL
-          ? c.email
-          : (c.whatsapp ?? c.phone);
+      const recipient = resolveRecipient(campaign.channel as CommChannel, c);
 
-      if (!recipient) continue;
-
-      const body = this.render(campaign.template.body, c);
+      if (!recipient) {
+        skipped++;
+        continue;
+      }
 
       const delivery = await this.db.messageDelivery.create({
         data: {
@@ -175,6 +177,15 @@ export class CommunicationService {
           channel: campaign.channel,
           status: DeliveryStatus.QUEUED,
         },
+      });
+
+      const body = this.render(campaign.template.body, c, {
+        link: this.trackingUrl(delivery.trackingId),
+      });
+
+      await this.db.messageDelivery.update({
+        where: { id: delivery.id },
+        data: { body },
       });
 
       await this.queue.enqueue(QueueName.COMMUNICATION, "send", {
@@ -200,7 +211,7 @@ export class CommunicationService {
       occurredAt: new Date().toISOString(),
     });
 
-    return { dispatched: customers.length };
+    return { dispatched: customers.length - skipped, skipped };
   }
 
   async createPropertyBroadcastCampaign(
@@ -346,7 +357,91 @@ export class CommunicationService {
     });
   }
 
-  private render(template: string, customer: { fullName: string }): string {
-    return template.replace(/\{\{\s*name\s*\}\}/gi, customer.fullName);
+  /**
+   * Applies a provider delivery receipt. Runs outside any tenant context, so it
+   * resolves the row by provider id and never downgrades a more advanced state.
+   */
+  async applyProviderStatus(
+    providerMessageId: string,
+    status: DeliveryStatus | undefined,
+    errorMessage?: string,
+  ): Promise<void> {
+    if (!status) return;
+
+    const delivery = await this.prisma.messageDelivery.findFirst({
+      where: { providerMessageId },
+      select: { id: true, companyId: true, status: true },
+    });
+    if (!delivery) return;
+
+    if (!advancesDelivery(delivery.status as DeliveryStatus, status)) return;
+
+    await this.prisma.messageDelivery.update({
+      where: { id: delivery.id },
+      data: {
+        status,
+        deliveredAt:
+          status === DeliveryStatus.DELIVERED ? new Date() : undefined,
+        errorMessage:
+          status === DeliveryStatus.FAILED ? (errorMessage ?? null) : undefined,
+      },
+    });
+
+    this.events.publish(DomainEvent.DELIVERY_UPDATED, {
+      companyId: delivery.companyId,
+      deliveryId: delivery.id,
+      status,
+      occurredAt: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Public click-tracking URL for a delivery. Templates opt in with `{{link}}`.
+   */
+  private trackingUrl(trackingId: string): string {
+    const base = (process.env.API_PUBLIC_URL ?? "http://localhost:4000").replace(
+      /\/$/,
+      "",
+    );
+    const prefix = process.env.API_GLOBAL_PREFIX ?? "api/v1";
+    return `${base}/${prefix}/t/${trackingId}`;
+  }
+
+  private render(
+    template: string,
+    customer: { fullName: string },
+    vars: Record<string, string> = {},
+  ): string {
+    const all: Record<string, string> = { name: customer.fullName, ...vars };
+    return template.replace(
+      /\{\{\s*(\w+)\s*\}\}/gi,
+      (match, key: string) => all[key.toLowerCase()] ?? match,
+    );
   }
 }
+
+/**
+ * Picks the address a channel can actually reach. Viber needs a subscriber id,
+ * email needs a mailbox; the rest fall back to the phone number.
+ */
+function resolveRecipient(
+  channel: CommChannel,
+  customer: {
+    phone: string | null;
+    email: string | null;
+    whatsapp: string | null;
+    viberId: string | null;
+  },
+): string | null {
+  switch (channel) {
+    case CommChannel.EMAIL:
+      return customer.email;
+    case CommChannel.VIBER:
+      return customer.viberId;
+    case CommChannel.WHATSAPP:
+      return customer.whatsapp ?? customer.phone;
+    default:
+      return customer.phone;
+  }
+}
+

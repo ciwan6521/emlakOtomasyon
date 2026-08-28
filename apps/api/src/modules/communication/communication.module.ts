@@ -1,10 +1,11 @@
 import { Module } from "@nestjs/common";
 import { CommunicationController } from "./communication.controller";
+import { DeliveryWebhooksController } from "./delivery-webhooks.controller";
 import { CommunicationService } from "./communication.service";
 import { CommunicationWorker } from "./communication.worker";
 
 @Module({
-  controllers: [CommunicationController],
+  controllers: [CommunicationController, DeliveryWebhooksController],
   providers: [CommunicationService, CommunicationWorker],
   exports: [CommunicationService],
 })

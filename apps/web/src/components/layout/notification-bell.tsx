@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/locale-context";
 import type { NotificationDto } from "@reos/shared";
 
 function timeAgo(iso: string): string {
@@ -26,6 +27,7 @@ function timeAgo(iso: string): string {
 export function NotificationBell() {
   const router = useRouter();
   const qc = useQueryClient();
+  const t = useT();
 
   const { data: count } = useQuery({
     queryKey: ["notifications", "count"],
@@ -62,7 +64,7 @@ export function NotificationBell() {
           variant="ghost"
           size="icon"
           className="relative"
-          aria-label="Notifications"
+          aria-label={t("common.notifications")}
         >
           <Bell className="h-4 w-4" />
           {unread > 0 && (
@@ -74,20 +76,22 @@ export function NotificationBell() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
-          <span className="text-sm font-medium">Bildirimler</span>
+          <span className="text-sm font-medium">
+            {t("common.notifications")}
+          </span>
           {unread > 0 && (
             <button
               onClick={() => markAll.mutate()}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
-              <CheckCheck className="h-3.5 w-3.5" /> Mark all read
+              <CheckCheck className="h-3.5 w-3.5" /> {t("common.markAllRead")}
             </button>
           )}
         </div>
         <div className="max-h-96 overflow-y-auto">
           {(!items || items.length === 0) && (
             <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-              Bildirim yok
+              {t("common.noNotifications")}
             </p>
           )}
           {items?.map((n) => (

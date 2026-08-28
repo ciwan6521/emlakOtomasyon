@@ -36,8 +36,8 @@ export default function ReportsPage() {
   return (
     <div>
       <PageHeader
-        title="Reports"
-        description="Daily, weekly, monthly and yearly performance reporting."
+        titleKey="page.reports.title"
+        descriptionKey="page.reports.subtitle"
       />
 
       <div className="mb-4 flex gap-2">

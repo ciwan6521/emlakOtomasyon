@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Locale } from "@reos/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
-import { messages, type MessageKey } from "./messages";
+import { HTML_LANG, messages, type MessageKey } from "./messages";
 
 const STORAGE_KEY = "reos.uiLocale";
 
@@ -29,13 +29,16 @@ interface LocaleContextValue {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
-function readStoredLocale(): Locale {
-  if (typeof window === "undefined") return Locale.EN;
+function isLocale(value: unknown): value is Locale {
+  return (
+    typeof value === "string" && Object.values(Locale).includes(value as Locale)
+  );
+}
+
+function readStoredLocale(): Locale | null {
+  if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw && Object.values(Locale).includes(raw as Locale)) {
-    return raw as Locale;
-  }
-  return Locale.EN;
+  return isLocale(raw) ? raw : null;
 }
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
@@ -48,32 +51,40 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     enabled: !!user,
   });
 
+  // Precedence: personal preference → last local choice → company default → EN.
+  // The company value is only a fallback, so a signed-in user is never forced
+  // back to the company language after picking their own.
   useEffect(() => {
-    if (company.data?.locale) {
-      setLocaleState(company.data.locale);
-      localStorage.setItem(STORAGE_KEY, company.data.locale);
-      return;
-    }
-    if (!user) {
-      setLocaleState(readStoredLocale());
-    }
-  }, [company.data?.locale, user]);
+    const resolved =
+      (isLocale(user?.locale) ? user?.locale : null) ??
+      readStoredLocale() ??
+      (isLocale(company.data?.locale) ? company.data?.locale : null) ??
+      Locale.EN;
+    setLocaleState(resolved);
+  }, [user?.locale, user?.id, company.data?.locale]);
 
   useEffect(() => {
-    const lang = locale === Locale.ME ? "cnr" : "en";
-    document.documentElement.lang = lang;
+    document.documentElement.lang = HTML_LANG[locale] ?? "en";
   }, [locale]);
 
-  const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
-    localStorage.setItem(STORAGE_KEY, next);
-  }, []);
+  const setLocale = useCallback(
+    (next: Locale) => {
+      setLocaleState(next);
+      localStorage.setItem(STORAGE_KEY, next);
+      if (!user) return;
+      // Persist server-side so the choice follows the user across devices.
+      // A failure here only costs cross-device sync, so it is not surfaced.
+      void api
+        .patch("/auth/me/locale", { locale: next })
+        .then(() => useAuth.setState({ user: { ...user, locale: next } }))
+        .catch(() => undefined);
+    },
+    [user],
+  );
 
   const t = useCallback(
-    (key: MessageKey) => {
-      const pack = locale === Locale.ME ? messages.me : messages.en;
-      return pack[key] ?? messages.en[key] ?? key;
-    },
+    (key: MessageKey) =>
+      messages[locale]?.[key] ?? messages[Locale.EN][key] ?? key,
     [locale],
   );
 

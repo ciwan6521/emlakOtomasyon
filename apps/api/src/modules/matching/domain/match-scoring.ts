@@ -87,13 +87,17 @@ export function evaluateMatch(
       reasons.push(`Rooms match: ${property.rooms}`);
   }
 
-  if (customerPurpose && property.purpose === customerPurpose) {
+  // A customer with no stated purpose matches either kind of listing, the same
+  // wildcard rule the other dimensions use. Without this the dimension weights
+  // could never reach 100.
+  if (!customerPurpose || property.purpose === customerPurpose) {
     score += WEIGHTS.purpose;
-    reasons.push(
-      customerPurpose === ListingPurpose.RENT
-        ? "Rental listing"
-        : "Sale listing",
-    );
+    if (customerPurpose)
+      reasons.push(
+        customerPurpose === ListingPurpose.RENT
+          ? "Rental listing"
+          : "Sale listing",
+      );
   }
 
   return { score: Math.min(100, score), reasons };

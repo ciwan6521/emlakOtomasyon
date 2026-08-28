@@ -25,10 +25,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth-store";
+import { useT } from "@/lib/i18n/locale-context";
 import {
   CommChannel,
+  COMM_CHANNEL_LABELS,
   CustomerSegment,
+  Locale,
+  LOCALE_LABELS,
+  Permission,
+  Scope,
   type CampaignDto,
   type PropertyBroadcastAudience,
 } from "@reos/shared";
@@ -42,6 +50,12 @@ interface Template {
 
 export default function CommunicationPage() {
   const qc = useQueryClient();
+  const t = useT();
+  const can = useAuth((s) => s.can);
+  const canManageTemplates = can(
+    Permission.COMMS_TEMPLATE_MANAGE,
+    Scope.COMPANY,
+  );
   const [form, setForm] = useState({
     name: "",
     channel: CommChannel.WHATSAPP,
@@ -49,6 +63,13 @@ export default function CommunicationPage() {
     segment: "" as string,
     customerIds: "",
     propertyId: "",
+  });
+  const [templateForm, setTemplateForm] = useState({
+    name: "",
+    channel: CommChannel.WHATSAPP,
+    locale: Locale.EN,
+    subject: "",
+    body: "",
   });
 
   const templates = useQuery({
@@ -94,38 +115,174 @@ export default function CommunicationPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["campaigns"] }),
   });
 
+  const createTemplate = useMutation({
+    mutationFn: () =>
+      api.post("/templates", {
+        name: templateForm.name,
+        channel: templateForm.channel,
+        locale: templateForm.locale,
+        ...(templateForm.channel === CommChannel.EMAIL && templateForm.subject
+          ? { subject: templateForm.subject }
+          : {}),
+        body: templateForm.body,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["templates"] });
+      setTemplateForm((f) => ({ ...f, name: "", subject: "", body: "" }));
+    },
+  });
+
   const channelTemplates =
     templates.data?.filter((t) => t.channel === form.channel) ?? [];
 
   return (
     <div>
       <PageHeader
-        title="Communication"
-        description="Templates, bulk & personalized messaging across WhatsApp, Telegram and Email."
+        titleKey="page.communication.title"
+        descriptionKey="page.communication.subtitle"
       />
       <Tabs defaultValue="templates">
         <TabsList>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+          <TabsTrigger value="templates">{t("comms.templates")}</TabsTrigger>
+          <TabsTrigger value="campaigns">{t("comms.campaigns")}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="templates">
+        <TabsContent value="templates" className="space-y-4">
+          {canManageTemplates && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Plus className="h-4 w-4" /> {t("comms.newTemplate")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>{t("comms.templateName")}</Label>
+                  <Input
+                    value={templateForm.name}
+                    onChange={(e) =>
+                      setTemplateForm({
+                        ...templateForm,
+                        name: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("comms.channel")}</Label>
+                  <Select
+                    value={templateForm.channel}
+                    onValueChange={(v) =>
+                      setTemplateForm({
+                        ...templateForm,
+                        channel: v as CommChannel,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(CommChannel).map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {COMM_CHANNEL_LABELS[c]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("comms.locale")}</Label>
+                  <Select
+                    value={templateForm.locale}
+                    onValueChange={(v) =>
+                      setTemplateForm({ ...templateForm, locale: v as Locale })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(Locale).map((l) => (
+                        <SelectItem key={l} value={l}>
+                          {LOCALE_LABELS[l]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {templateForm.channel === CommChannel.EMAIL && (
+                  <div className="space-y-1.5">
+                    <Label>{t("comms.subject")}</Label>
+                    <Input
+                      value={templateForm.subject}
+                      onChange={(e) =>
+                        setTemplateForm({
+                          ...templateForm,
+                          subject: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                )}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>{t("comms.body")}</Label>
+                  <Textarea
+                    rows={4}
+                    maxLength={4000}
+                    value={templateForm.body}
+                    onChange={(e) =>
+                      setTemplateForm({
+                        ...templateForm,
+                        body: e.target.value,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t("comms.bodyHint")}
+                  </p>
+                </div>
+                <div className="sm:col-span-2">
+                  <Button
+                    disabled={
+                      !templateForm.name.trim() ||
+                      !templateForm.body.trim() ||
+                      createTemplate.isPending
+                    }
+                    onClick={() => createTemplate.mutate()}
+                  >
+                    {createTemplate.isPending
+                      ? t("common.creating")
+                      : t("comms.createTemplate")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {templates.data?.map((t) => (
-              <Card key={t.id}>
+            {templates.data?.map((template) => (
+              <Card key={template.id}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center justify-between text-base">
-                    {t.name}
-                    <Badge variant="secondary">{t.channel}</Badge>
+                  <CardTitle className="flex items-center justify-between gap-2 text-base">
+                    {template.name}
+                    <Badge variant="secondary">
+                      {COMM_CHANNEL_LABELS[template.channel as CommChannel] ??
+                        template.channel}
+                    </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">{t.body}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {template.body}
+                  </p>
                 </CardContent>
               </Card>
             ))}
             {(!templates.data || templates.data.length === 0) && (
-              <p className="text-sm text-muted-foreground">No templates yet.</p>
+              <p className="text-sm text-muted-foreground">
+                {t("comms.noTemplates")}
+              </p>
             )}
           </div>
         </TabsContent>
@@ -164,7 +321,7 @@ export default function CommunicationPage() {
                   <SelectContent>
                     {Object.values(CommChannel).map((c) => (
                       <SelectItem key={c} value={c}>
-                        {c}
+                        {COMM_CHANNEL_LABELS[c]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -288,7 +445,10 @@ export default function CommunicationPage() {
                 {campaigns.data?.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell>{c.channel}</TableCell>
+                    <TableCell>
+                      {COMM_CHANNEL_LABELS[c.channel as CommChannel] ??
+                        c.channel}
+                    </TableCell>
                     <TableCell>{c.audienceSize}</TableCell>
                     <TableCell>{c.sentCount}</TableCell>
                     <TableCell>{c.deliveredCount}</TableCell>

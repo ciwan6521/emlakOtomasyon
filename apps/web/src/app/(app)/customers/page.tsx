@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Pencil, Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,14 +58,17 @@ export default function CustomersPage() {
   return (
     <div>
       <PageHeader
-        title="Customers"
-        description="Buyer & tenant CRM with budget, requirements and segmentation."
+        titleKey="page.customers.title"
+        descriptionKey="page.customers.subtitle"
         action={
-          canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <Plus className="mr-1.5 h-4 w-4" /> New customer
-            </Button>
-          )
+          <>
+            <ExportCsvButton resource="customers" />
+            {canManage && (
+              <Button onClick={() => setCreating(true)}>
+                <Plus className="mr-1.5 h-4 w-4" /> New customer
+              </Button>
+            )}
+          </>
         }
       />
       <div className="mb-4 flex flex-wrap items-center gap-2">

@@ -129,7 +129,7 @@ async function main(): Promise<void> {
   });
   if (!template) {
     await prisma.messageTemplate.create({
-      data: { companyId: company.id, name: 'New listings (EN)', channel: 'WHATSAPP', body: 'Hi {{name}}, we found new properties matching your criteria. Take a look!' },
+      data: { companyId: company.id, name: 'New listings (EN)', channel: 'WHATSAPP', body: 'Hi {{name}}, we found new properties matching your criteria. Take a look: {{link}}' },
     });
   }
 

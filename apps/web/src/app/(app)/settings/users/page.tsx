@@ -128,8 +128,8 @@ export default function UsersPage() {
   return (
     <div>
       <PageHeader
-        title="Users & Roles"
-        description="Manage team members and their RBAC roles."
+        titleKey="page.users.title"
+        descriptionKey="page.users.subtitle"
         action={
           canManage && (
             <Button onClick={openCreate}>

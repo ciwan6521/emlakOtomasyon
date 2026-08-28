@@ -182,8 +182,8 @@ export default function OwnersPage() {
   return (
     <div>
       <PageHeader
-        title="Owner CRM"
-        description="Every property owner profiled with rating, portfolio history and contact channels."
+        titleKey="page.owners.title"
+        descriptionKey="page.owners.subtitle"
         action={
           canManage && (
             <Button onClick={() => openEditor(null)}>

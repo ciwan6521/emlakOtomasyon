@@ -39,6 +39,14 @@ export class ContactMaskingService {
     return this.canReveal(hint) ? value : maskEmail(value);
   }
 
+  /**
+   * Opaque per-channel identifiers such as a Viber subscriber id. They reach a
+   * person just like a phone number does, so they follow the same reveal rule.
+   */
+  handle(value: string | null | undefined, hint: ContactScopeHint = {}): string {
+    return this.canReveal(hint) ? (value ?? "") : maskPhone(value);
+  }
+
   async reveal(
     entity: string,
     entityId: string,

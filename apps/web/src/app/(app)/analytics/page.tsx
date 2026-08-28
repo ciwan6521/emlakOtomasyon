@@ -50,8 +50,8 @@ export default function AnalyticsPage() {
   return (
     <div>
       <PageHeader
-        title="Analytics"
-        description="Agent and regional performance breakdown."
+        titleKey="page.analytics.title"
+        descriptionKey="page.analytics.subtitle"
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

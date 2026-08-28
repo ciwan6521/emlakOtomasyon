@@ -9,7 +9,6 @@ import {
   Min,
 } from "class-validator";
 import {
-  BuildType,
   ListingPurpose,
   OnboardingDecision,
   PropertyType,

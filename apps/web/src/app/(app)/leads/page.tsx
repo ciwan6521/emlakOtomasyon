@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import Image from "next/image";
+
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ExternalLink, Plus } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
+import { ExportCsvButton } from "@/components/export-csv-button";
 
 import { StatusBadge } from "@/components/status-badge";
 
@@ -75,13 +78,30 @@ const OWNER_RATING_LABEL: Record<OwnerRating, string> = {
 };
 
 export default function LeadsPage() {
+  return (
+    <Suspense fallback={null}>
+      <LeadsView />
+    </Suspense>
+  );
+}
+
+function LeadsView() {
   const qc = useQueryClient();
+
+  const router = useRouter();
+
+  const focusId = useSearchParams().get("focus");
 
   const [status, setStatus] = useState<string>("ALL");
 
   const [search, setSearch] = useState("");
 
-  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(focusId);
+
+  // Notifications deep-link to a single lead with ?focus=<id>.
+  useEffect(() => {
+    if (focusId) setDetailId(focusId);
+  }, [focusId]);
 
   const query = useQuery({
     queryKey: ["leads", status, search],
@@ -107,12 +127,15 @@ export default function LeadsPage() {
   return (
     <div>
       <PageHeader
-        title="Leads"
-        description="Acquisition pipeline — scored, deduplicated and auto-assigned."
+        titleKey="page.leads.title"
+        descriptionKey="page.leads.subtitle"
         action={
-          <CreateLeadDialog
-            onCreated={() => qc.invalidateQueries({ queryKey: ["leads"] })}
-          />
+          <>
+            <ExportCsvButton resource="leads" />
+            <CreateLeadDialog
+              onCreated={() => qc.invalidateQueries({ queryKey: ["leads"] })}
+            />
+          </>
         }
       />
 
@@ -274,7 +297,11 @@ export default function LeadsPage() {
       <LeadDetailDialog
         leadId={detailId}
         open={!!detailId}
-        onOpenChange={(open) => !open && setDetailId(null)}
+        onOpenChange={(open) => {
+          if (open) return;
+          setDetailId(null);
+          if (focusId) router.replace("/leads");
+        }}
       />
     </div>
   );

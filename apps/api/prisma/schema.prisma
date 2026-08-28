@@ -212,6 +212,7 @@ enum DealStage {
 
 enum CommChannel {
   WHATSAPP
+  VIBER
   TELEGRAM
   SMS
   EMAIL
@@ -470,6 +471,7 @@ model User {
   phone        String?
   avatarUrl    String?
   roles        Role[]
+  locale       Locale?
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
@@ -744,6 +746,7 @@ model Customer {
   phone            String
   email            String?
   whatsapp         String?
+  viberId          String? // Viber subscriber id (obtained when the user messages the account)
   lastContactAt    DateTime?
   kind             CustomerKind    @default(BUYER)
   intent           CustomerIntent  @default(LIVING)
@@ -957,6 +960,7 @@ model MessageDelivery {
   channel      CommChannel
   status       DeliveryStatus @default(QUEUED)
   trackingId   String         @unique @default(cuid())
+  providerMessageId String?   // provider-side id, used to correlate status webhooks
   body         String? // rendered message body (direct sends)
   context      String? // origin tag, e.g. "CALL_ASSIST"
   sentAt       DateTime?
@@ -969,6 +973,7 @@ model MessageDelivery {
 
   @@index([companyId, campaignId, status])
   @@index([companyId, context, createdAt])
+  @@index([providerMessageId])
   @@map("message_deliveries")
 }
 

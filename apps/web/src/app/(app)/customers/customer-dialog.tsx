@@ -40,6 +40,7 @@ type FormState = {
   phone: string;
   email: string;
   whatsapp: string;
+  viberId: string;
   kind: CustomerKind;
   intent: CustomerIntent;
   segment: CustomerSegment;
@@ -63,6 +64,7 @@ const EMPTY: FormState = {
   phone: "",
   email: "",
   whatsapp: "",
+  viberId: "",
   kind: CustomerKind.BUYER,
   intent: CustomerIntent.LIVING,
   segment: CustomerSegment.WARM,
@@ -103,6 +105,7 @@ export function CustomerDialog({
               phone: customer.phone,
               email: customer.email ?? "",
               whatsapp: customer.whatsapp ?? "",
+              viberId: customer.viberId ?? "",
               kind: customer.kind,
               intent: customer.intent,
               segment: customer.segment,
@@ -144,6 +147,7 @@ export function CustomerDialog({
         segment: form.segment,
         notes: form.notes || undefined,
         whatsapp: form.whatsapp || undefined,
+        viberId: form.viberId || undefined,
         preferredPurpose: form.preferredPurpose || undefined,
         moveInDate: form.moveInDate || undefined,
         leaseMonths:
@@ -159,6 +163,7 @@ export function CustomerDialog({
             phone: form.phone,
             email: form.email || undefined,
             whatsapp: form.whatsapp || undefined,
+            viberId: form.viberId || undefined,
             kind: form.kind,
             intent: form.intent,
           });
@@ -228,6 +233,16 @@ export function CustomerDialog({
                 />
               </div>
               <div className="space-y-1.5">
+                <Label>Viber subscriber ID</Label>
+                <Input
+                  value={form.viberId}
+                  onChange={(e) =>
+                    setForm({ ...form, viberId: e.target.value })
+                  }
+                  placeholder="Received when the contact messages your Viber account"
+                />
+              </div>
+              <div className="space-y-1.5">
                 <Label>Kind</Label>
                 <Select
                   value={form.kind}
@@ -270,14 +285,27 @@ export function CustomerDialog({
             </>
           )}
           {isEdit && (
-            <div className="space-y-1.5">
-              <Label>WhatsApp</Label>
-              <Input
-                value={form.whatsapp}
-                onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                placeholder="+382…"
-              />
-            </div>
+            <>
+              <div className="space-y-1.5">
+                <Label>WhatsApp</Label>
+                <Input
+                  value={form.whatsapp}
+                  onChange={(e) =>
+                    setForm({ ...form, whatsapp: e.target.value })
+                  }
+                  placeholder="+382…"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Viber subscriber ID</Label>
+                <Input
+                  value={form.viberId}
+                  onChange={(e) =>
+                    setForm({ ...form, viberId: e.target.value })
+                  }
+                />
+              </div>
+            </>
           )}
           <div className="space-y-1.5">
             <Label>Segment</Label>

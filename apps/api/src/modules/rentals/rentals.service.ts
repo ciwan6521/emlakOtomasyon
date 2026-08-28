@@ -1,11 +1,9 @@
 import {
   AvailabilityKind,
-  HandoverType,
   LeaseStatus,
   ListingPurpose,
   MaintenancePriority,
   MaintenanceStatus,
-  Paginated,
   PaymentMethod,
   PayoutStatus,
   RentalOverview,

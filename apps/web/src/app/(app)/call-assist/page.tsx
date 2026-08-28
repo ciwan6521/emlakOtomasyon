@@ -49,10 +49,51 @@ const CHANNELS: {
   icon: typeof MessageCircle;
 }[] = [
   { value: CommChannel.WHATSAPP, label: "WhatsApp", icon: MessageCircle },
+  { value: CommChannel.VIBER, label: "Viber", icon: MessageCircle },
   { value: CommChannel.TELEGRAM, label: "Telegram", icon: Send },
   { value: CommChannel.SMS, label: "SMS", icon: Phone },
   { value: CommChannel.EMAIL, label: "Email", icon: Mail },
 ];
+
+/**
+ * Each channel addresses people differently: WhatsApp and SMS take a phone
+ * number, but Viber and Telegram need an id the contact only hands over by
+ * messaging the business account first. An address is never reusable across
+ * two of these, so the recipient is cleared whenever the space changes.
+ */
+const ADDRESS_SPACE: Record<CommChannel, string> = {
+  [CommChannel.WHATSAPP]: "phone",
+  [CommChannel.SMS]: "phone",
+  [CommChannel.VIBER]: "viber",
+  [CommChannel.TELEGRAM]: "telegram",
+  [CommChannel.EMAIL]: "email",
+};
+
+const RECIPIENT_FIELD: Record<
+  CommChannel,
+  { label: string; placeholder: string }
+> = {
+  [CommChannel.WHATSAPP]: {
+    label: "Recipient phone",
+    placeholder: "+382 6x xxx xxx",
+  },
+  [CommChannel.SMS]: {
+    label: "Recipient phone",
+    placeholder: "+382 6x xxx xxx",
+  },
+  [CommChannel.VIBER]: {
+    label: "Viber subscriber ID",
+    placeholder: "Sent to you when the contact messages your Viber account",
+  },
+  [CommChannel.TELEGRAM]: {
+    label: "Telegram chat ID",
+    placeholder: "123456789",
+  },
+  [CommChannel.EMAIL]: {
+    label: "Recipient email",
+    placeholder: "name@example.com",
+  },
+};
 
 function useDebounced<T>(value: T, delay = 350): T {
   const [v, setV] = useState(value);
@@ -134,10 +175,15 @@ export default function CallAssistPage() {
   }
 
   function pickQueueItem(item: QueueItem) {
-    setRecipient(item.phone);
+    setRecipient(ADDRESS_SPACE[channel] === "phone" ? item.phone : "");
     setCustomerName(item.fullName);
     setLeadId(item.leadId);
     setCustomerId(undefined);
+  }
+
+  function pickChannel(next: CommChannel) {
+    if (ADDRESS_SPACE[next] !== ADDRESS_SPACE[channel]) setRecipient("");
+    setChannel(next);
   }
 
   async function share(card: CallAssistCard) {
@@ -171,8 +217,8 @@ export default function CallAssistPage() {
   return (
     <div className="flex flex-col gap-4 pb-40">
       <PageHeader
-        title="Live Call Assist"
-        description="Search listings while on a call and send matches to the customer."
+        titleKey="page.callAssist.title"
+        descriptionKey="page.callAssist.subtitle"
       />
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
@@ -192,11 +238,11 @@ export default function CallAssistPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Recipient (phone / email)</Label>
+                <Label>{RECIPIENT_FIELD[channel].label}</Label>
                 <Input
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
-                  placeholder="+382 6x xxx xxx"
+                  placeholder={RECIPIENT_FIELD[channel].placeholder}
                 />
               </div>
               <div className="space-y-1.5">
@@ -205,7 +251,7 @@ export default function CallAssistPage() {
                   {CHANNELS.map((c) => (
                     <button
                       key={c.value}
-                      onClick={() => setChannel(c.value)}
+                      onClick={() => pickChannel(c.value)}
                       className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${channel === c.value ? "border-primary bg-primary text-primary-foreground" : "border-input hover:bg-accent"}`}
                     >
                       <c.icon className="h-3.5 w-3.5" /> {c.label}

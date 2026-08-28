@@ -19,7 +19,11 @@ async function bootstrap(): Promise<void> {
     console.error("[unhandledRejection]", reason);
   });
 
-  const app = await NestFactory.create(AppModule, { bufferLogs: false });
+  // rawBody is required to verify provider webhook signatures byte-for-byte.
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: false,
+    rawBody: true,
+  });
   const config = app.get(ConfigService);
   const reflector = app.get(Reflector);
 

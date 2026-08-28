@@ -76,35 +76,37 @@ export class CommunicationWorker implements OnModuleInit {
         trackingId,
       });
 
-      await this.prisma.messageDelivery.update({
-        where: { id: deliveryId },
+      // Channels with a status webhook stay at SENT until the provider calls
+      // back; the rest are terminal as soon as the provider accepts them.
+      const status = !result.ok
+        ? DeliveryStatus.FAILED
+        : result.deliveredSynchronously
+          ? DeliveryStatus.DELIVERED
+          : DeliveryStatus.SENT;
 
-        data: result.ok
-          ? { status: DeliveryStatus.SENT, sentAt: new Date() }
-          : { status: DeliveryStatus.FAILED, errorMessage: result.error },
+      const delivery = await this.prisma.messageDelivery.update({
+        where: { id: deliveryId },
+        data: {
+          status,
+          providerMessageId: result.providerMessageId,
+          sentAt: result.ok ? new Date() : undefined,
+          deliveredAt:
+            status === DeliveryStatus.DELIVERED ? new Date() : undefined,
+          errorMessage: result.ok ? null : result.error,
+        },
       });
 
-      const delivery = await this.prisma.messageDelivery.findFirst({
-        where: { id: deliveryId },
-      });
-      const companyId = delivery?.companyId;
-
-      if (!result.ok) throw new Error(result.error);
-
-      await this.prisma.messageDelivery.update({
-        where: { id: deliveryId },
-
-        data: { status: DeliveryStatus.DELIVERED, deliveredAt: new Date() },
-      });
-
-      if (companyId) {
+      if (delivery.companyId) {
         this.events.publish(DomainEvent.DELIVERY_UPDATED, {
-          companyId,
+          companyId: delivery.companyId,
           deliveryId,
-          status: DeliveryStatus.DELIVERED,
+          status,
           occurredAt: new Date().toISOString(),
         });
       }
+
+      // Throw after persisting so BullMQ retries the send.
+      if (!result.ok) throw new Error(result.error);
     });
 
     this.logger.log("Communication worker registered");

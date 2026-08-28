@@ -270,10 +270,19 @@ export enum DealStage {
 
 export enum CommChannel {
   WHATSAPP = "WHATSAPP",
+  VIBER = "VIBER",
   TELEGRAM = "TELEGRAM",
   SMS = "SMS",
   EMAIL = "EMAIL",
 }
+
+export const COMM_CHANNEL_LABELS: Record<CommChannel, string> = {
+  [CommChannel.WHATSAPP]: "WhatsApp",
+  [CommChannel.VIBER]: "Viber",
+  [CommChannel.TELEGRAM]: "Telegram",
+  [CommChannel.SMS]: "SMS",
+  [CommChannel.EMAIL]: "Email",
+};
 
 export enum DeliveryStatus {
   QUEUED = "QUEUED",
