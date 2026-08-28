@@ -42,7 +42,7 @@ export class CustomersService {
       phone: this.masking.phone(c.phone, hint),
       email: this.masking.email(c.email, hint),
       whatsapp: c.whatsapp ? this.masking.phone(c.whatsapp, hint) : null,
-      viberId: c.viberId ?? null,
+      viberId: c.viberId ? this.masking.handle(c.viberId, hint) : null,
       kind: c.kind,
       intent: c.intent,
       segment: c.segment,

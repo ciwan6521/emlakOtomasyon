@@ -24,6 +24,8 @@ import {
 
 import { CreateCampaignDto, CreateTemplateDto } from "./dto";
 
+import { advancesDelivery } from "./domain/delivery-status";
+
 @Injectable()
 export class CommunicationService {
   constructor(
@@ -372,8 +374,7 @@ export class CommunicationService {
     });
     if (!delivery) return;
 
-    if (DELIVERY_RANK[status] <= DELIVERY_RANK[delivery.status as DeliveryStatus])
-      return;
+    if (!advancesDelivery(delivery.status as DeliveryStatus, status)) return;
 
     await this.prisma.messageDelivery.update({
       where: { id: delivery.id },
@@ -444,11 +445,3 @@ function resolveRecipient(
   }
 }
 
-/** Delivery states only ever move forward. */
-const DELIVERY_RANK: Record<DeliveryStatus, number> = {
-  [DeliveryStatus.QUEUED]: 0,
-  [DeliveryStatus.FAILED]: 1,
-  [DeliveryStatus.SENT]: 2,
-  [DeliveryStatus.DELIVERED]: 3,
-  [DeliveryStatus.CLICKED]: 4,
-};
