@@ -2,11 +2,15 @@
 /**
  * Creates (or resets the password of) a company owner without seeding demo data.
  *
- * Runs inside the api container, which already has the generated Prisma client:
- *   docker cp scripts/create-admin.js reos-api:/tmp/create-admin.js
+ * Runs inside the api container, which already has the generated Prisma client.
+ * It has to land in the container's workdir: Node resolves node_modules by
+ * walking up from the script, and /app/node_modules is only on that path from
+ * inside /app.
+ *
+ *   docker cp scripts/create-admin.js reos-api:/app/apps/api/create-admin.js
  *   docker compose ... exec \
  *     -e ADMIN_EMAIL=you@example.com -e ADMIN_PASSWORD='...' \
- *     api node /tmp/create-admin.js
+ *     api node create-admin.js
  */
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
