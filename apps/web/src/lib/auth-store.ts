@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { can, Permission, Role, Scope } from "@reos/shared";
 import type { AuthUser } from "@reos/shared";
-import { api, setTokens } from "./api";
+import { api, getTokens, setTokens } from "./api";
 
 interface AuthState {
   user: AuthUser | null;
@@ -28,6 +28,11 @@ export const useAuth = create<AuthState>((set, get) => ({
     set({ user: res.user });
   },
   logout() {
+    // Revoke the refresh token server-side; a failure must not trap the user
+    // in a signed-in state, so the local session is cleared regardless.
+    const refreshToken = getTokens()?.refreshToken;
+    if (refreshToken)
+      void api.post("/auth/logout", { refreshToken }).catch(() => undefined);
     setTokens(null);
     set({ user: null });
     if (typeof window !== "undefined") window.location.href = "/login";

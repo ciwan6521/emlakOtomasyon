@@ -13,6 +13,7 @@ import {
   User,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -129,8 +130,9 @@ export default function PropertiesPage() {
   return (
     <div>
       <PageHeader
-        title="Properties"
-        description="Portfolio with lifecycle, media and AI multi-language content."
+        titleKey="page.properties.title"
+        descriptionKey="page.properties.subtitle"
+        action={<ExportCsvButton resource="properties" />}
       />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">

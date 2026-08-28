@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res } from "@nestjs/common";
+import { Controller, Get, NotFoundException, Param, Res } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { Response } from "express";
 import { Permission, Scope } from "@reos/shared";
@@ -24,7 +24,9 @@ export class ExportsController {
     @Res() res: Response,
   ): Promise<void> {
     const key = resource as Resource;
-    const csv = RESOURCES.includes(key) ? await this.exports[key]() : "";
+    if (!RESOURCES.includes(key))
+      throw new NotFoundException(`Unknown export resource "${resource}"`);
+    const csv = await this.exports[key]();
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",

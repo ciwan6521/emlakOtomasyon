@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { IsOptional, IsString, MaxLength } from "class-validator";
+import { IsString, MaxLength } from "class-validator";
 import { Permission, Scope } from "@reos/shared";
 import { Public, RequirePermissions } from "../../common/auth/decorators";
 import { CreateSessionDto, ReviewDto, SubmitOnboardingDto } from "./dto";

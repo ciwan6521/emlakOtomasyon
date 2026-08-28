@@ -53,8 +53,8 @@ export default function MapPage() {
   return (
     <div>
       <PageHeader
-        title="Map"
-        description="Active listings plotted on an interactive map. Filter by region."
+        titleKey="page.map.title"
+        descriptionKey="page.map.subtitle"
         action={
           <Select value={region} onValueChange={setRegion}>
             <SelectTrigger className="w-40">

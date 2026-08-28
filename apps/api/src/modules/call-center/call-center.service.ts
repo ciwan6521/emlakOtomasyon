@@ -5,8 +5,6 @@ import {
   DomainEvent,
   LeadStatus,
   NotificationType,
-  OwnerRating,
-  TaskType,
 } from "@reos/shared";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { EventBus } from "../../common/events/event-bus";

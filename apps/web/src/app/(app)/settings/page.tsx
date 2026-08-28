@@ -26,7 +26,14 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
-import { Locale, LOCALE_LABELS, Permission, type CompanySettingsDto } from "@reos/shared";
+import {
+  CommChannel,
+  COMM_CHANNEL_LABELS,
+  Locale,
+  LOCALE_LABELS,
+  Permission,
+  type CompanySettingsDto,
+} from "@reos/shared";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
 
 interface CompanyDto {
@@ -44,14 +51,16 @@ interface TemplateDto {
   channel?: string;
 }
 
-const INTEGRATIONS = [
-  { name: "WhatsApp Cloud API", env: "Messaging" },
-  { name: "Telegram Bot API", env: "Messaging" },
-  { name: "Twilio SMS", env: "Messaging" },
-  { name: "Meta (Instagram / Facebook)", env: "Social" },
-  { name: "Listing copy API", env: "Content" },
-  { name: "S3 / MinIO storage", env: "Media" },
-];
+interface IntegrationStatusDto {
+  mode: string;
+  channels: Array<{
+    channel: CommChannel;
+    provider: string;
+    configured: boolean;
+    live: boolean;
+    missingEnv: string[];
+  }>;
+}
 
 const NOTIFICATION_TOGGLES: Array<{
   key: keyof NonNullable<CompanySettingsDto["notifications"]>;
@@ -103,7 +112,7 @@ function Toggle({
 export default function SettingsPage() {
   const { can } = useAuth();
   const qc = useQueryClient();
-  const { setLocale } = useLocale();
+  const { locale, setLocale } = useLocale();
   const t = useT();
   const canManage = can(Permission.USER_MANAGE);
   const [form, setForm] = useState({
@@ -127,6 +136,10 @@ export default function SettingsPage() {
     queryKey: ["templates"],
     queryFn: () => api.get<TemplateDto[]>("/templates"),
   });
+  const integrations = useQuery({
+    queryKey: ["integrations", "status"],
+    queryFn: () => api.get<IntegrationStatusDto>("/integrations/status"),
+  });
 
   useEffect(() => {
     if (company.data) {
@@ -143,10 +156,7 @@ export default function SettingsPage() {
 
   const saveProfile = useMutation({
     mutationFn: () => api.patch("/company", form),
-    onSuccess: () => {
-      setLocale(form.locale);
-      qc.invalidateQueries({ queryKey: ["company"] });
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["company"] }),
   });
 
   const saveSettings = useMutation({
@@ -158,20 +168,20 @@ export default function SettingsPage() {
   return (
     <div>
       <PageHeader
-        title="Settings"
-        description="Company profile, templates, integrations, users and permissions."
+        titleKey="page.settings.title"
+        descriptionKey="page.settings.subtitle"
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" /> Company profile
+              <Building2 className="h-4 w-4" /> {t("settings.companyProfile")}
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Company name</Label>
+              <Label>{t("settings.companyName")}</Label>
               <Input
                 value={form.name}
                 disabled={!canManage}
@@ -179,7 +189,7 @@ export default function SettingsPage() {
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Logo URL</Label>
+              <Label>{t("settings.logoUrl")}</Label>
               <Input
                 value={form.logoUrl}
                 disabled={!canManage}
@@ -188,7 +198,7 @@ export default function SettingsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Currency</Label>
+              <Label>{t("settings.currency")}</Label>
               <Input
                 value={form.currency}
                 disabled={!canManage}
@@ -221,13 +231,35 @@ export default function SettingsPage() {
                   onClick={() => saveProfile.mutate()}
                 >
                   {saveProfile.isPending
-                    ? "Saving…"
+                    ? t("common.saving")
                     : saveProfile.isSuccess
-                      ? "Saved"
-                      : "Save profile"}
+                      ? t("common.saved")
+                      : t("settings.saveProfile")}
                 </Button>
               </div>
             )}
+
+            <div className="space-y-1.5 border-t pt-4 sm:col-span-2">
+              <Label>{t("settings.myLanguage")}</Label>
+              <Select
+                value={locale}
+                onValueChange={(v) => setLocale(v as Locale)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(Locale).map((l) => (
+                    <SelectItem key={l} value={l}>
+                      {LOCALE_LABELS[l]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {t("settings.myLanguageHint")}
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -343,23 +375,60 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Plug className="h-4 w-4" /> Integrations
+              <Plug className="h-4 w-4" /> {t("settings.integrations")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {INTEGRATIONS.map((i) => (
-              <div
-                key={i.name}
-                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+            <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+              <span className="font-medium">
+                {t("settings.integrationsMode")}
+              </span>
+              <span
+                className={cn(
+                  "rounded px-2 py-0.5 text-xs font-medium",
+                  integrations.data?.mode === "live"
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+                )}
               >
-                <span>{i.name}</span>
-                <span className="text-xs text-muted-foreground">{i.env}</span>
+                {integrations.data?.mode === "live"
+                  ? t("settings.live")
+                  : t("settings.simulated")}
+              </span>
+            </div>
+
+            {(integrations.data?.channels ?? []).map((c) => (
+              <div
+                key={c.channel}
+                className="flex items-start justify-between gap-3 rounded-md border px-3 py-2 text-sm"
+              >
+                <div>
+                  <p>{COMM_CHANNEL_LABELS[c.channel] ?? c.channel}</p>
+                  <p className="text-xs text-muted-foreground">{c.provider}</p>
+                  {!c.configured && c.missingEnv.length > 0 && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {t("settings.missingEnv")}: {c.missingEnv.join(", ")}
+                    </p>
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    "shrink-0 rounded px-2 py-0.5 text-xs font-medium",
+                    c.live
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                      : c.configured
+                        ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                        : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {c.live
+                    ? t("settings.live")
+                    : c.configured
+                      ? t("settings.simulated")
+                      : t("settings.notConfigured")}
+                </span>
               </div>
             ))}
-            <p className="pt-1 text-xs text-muted-foreground">
-              Configured via server environment variables. Falls back to
-              simulation when keys are absent.
-            </p>
           </CardContent>
         </Card>
 

@@ -47,7 +47,7 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Search pages, leads, properties…" />
+      <CommandInput placeholder={t("common.searchPlaceholder")} />
       <CommandList>
         <CommandEmpty>{t("common.noResults")}</CommandEmpty>
         <CommandGroup heading={t("common.navigate")}>
@@ -64,18 +64,18 @@ export function CommandPalette() {
             </CommandItem>
           ))}
         </CommandGroup>
-        <CommandGroup heading="Quick actions">
+        <CommandGroup heading={t("common.quickActions")}>
           <CommandItem value="new lead" onSelect={() => go("/leads?new=1")}>
-            Create lead
+            {t("common.createLead")}
           </CommandItem>
           <CommandItem
             value="new property"
             onSelect={() => go("/properties?new=1")}
           >
-            Create property
+            {t("common.createProperty")}
           </CommandItem>
           <CommandItem value="call queue" onSelect={() => go("/call-center")}>
-            Open call queue
+            {t("common.openCallQueue")}
           </CommandItem>
         </CommandGroup>
       </CommandList>

@@ -1,11 +1,9 @@
 import {
   IsEnum,
-  IsNumber,
   IsObject,
   IsOptional,
   IsString,
   MaxLength,
-  Min,
 } from "class-validator";
 
 import { CompanySettingsDto, Locale } from "@reos/shared";

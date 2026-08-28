@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/status-badge";
-import { api, apiFetch } from "@/lib/api";
+import { api } from "@/lib/api";
 import { cn, relativeTime } from "@/lib/utils";
 import { SocialChannel } from "@reos/shared";
 
@@ -23,24 +23,8 @@ interface SocialPost {
   createdAt: string;
 }
 
-const CAPTION_ENDPOINTS = [
-  "/social/caption/generate",
-  "/ai/social-caption",
-] as const;
-
-async function probeCaptionEndpoint(path: string): Promise<boolean> {
-  try {
-    await apiFetch(path, { method: "POST", body: {}, retry: false });
-    return true;
-  } catch (err: unknown) {
-    const status = (err as { error?: { status?: number } })?.error?.status;
-    return status !== undefined && status !== 404;
-  }
-}
-
 export default function SocialPage() {
   const qc = useQueryClient();
-  const [captionEndpoint, setCaptionEndpoint] = useState<string | null>(null);
   const [draftCaption, setDraftCaption] = useState("");
   const [propertyId, setPropertyId] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -49,21 +33,6 @@ export default function SocialPage() {
     queryKey: ["social"],
     queryFn: () => api.get<SocialPost[]>("/social/posts"),
   });
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      for (const path of CAPTION_ENDPOINTS) {
-        if (await probeCaptionEndpoint(path)) {
-          if (!cancelled) setCaptionEndpoint(path);
-          return;
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const createPost = useMutation({
     mutationFn: () =>
@@ -80,11 +49,11 @@ export default function SocialPage() {
   });
 
   const generateCaption = async () => {
-    if (!captionEndpoint) return;
+    if (!propertyId.trim()) return;
     setGenerating(true);
     try {
-      const result = await api.post<{ caption: string }>(captionEndpoint, {
-        propertyId: propertyId || undefined,
+      const result = await api.post<{ caption: string }>("/ai/social-caption", {
+        propertyId: propertyId.trim(),
       });
       if (result.caption) setDraftCaption(result.caption);
     } finally {
@@ -95,8 +64,8 @@ export default function SocialPage() {
   return (
     <div>
       <PageHeader
-        title="Social Automation"
-        description="Auto-post on publish, scheduling and repost logic (1d / 7d / price update)."
+        titleKey="page.social.title"
+        descriptionKey="page.social.subtitle"
       />
 
       <Card className="mb-4">
@@ -123,16 +92,19 @@ export default function SocialPage() {
             />
           </div>
           <div className="flex flex-wrap gap-2 sm:col-span-2">
-            {captionEndpoint && (
-              <Button
-                variant="outline"
-                disabled={generating}
-                onClick={generateCaption}
-              >
-                <Sparkles className="mr-1.5 h-4 w-4" />
-                {generating ? "Generating…" : "AI caption"}
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              disabled={generating || !propertyId.trim()}
+              title={
+                propertyId.trim()
+                  ? undefined
+                  : "Enter a property ID to generate a caption"
+              }
+              onClick={generateCaption}
+            >
+              <Sparkles className="mr-1.5 h-4 w-4" />
+              {generating ? "Generating…" : "AI caption"}
+            </Button>
             <Button
               disabled={!draftCaption.trim() || createPost.isPending}
               onClick={() => createPost.mutate()}

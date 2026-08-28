@@ -5,11 +5,15 @@ import { Permission, Scope } from "@reos/shared";
 import { Public, RequirePermissions } from "../../common/auth/decorators";
 import { CreateCampaignDto, CreateTemplateDto } from "./dto";
 import { CommunicationService } from "./communication.service";
+import { MessagingAdapter } from "../integrations/messaging.adapter";
 
 @ApiTags("communication")
 @Controller()
 export class CommunicationController {
-  constructor(private readonly comms: CommunicationService) {}
+  constructor(
+    private readonly comms: CommunicationService,
+    private readonly messaging: MessagingAdapter,
+  ) {}
 
   @ApiBearerAuth()
   @Get("templates")
@@ -71,14 +75,23 @@ export class CommunicationController {
     return this.comms.deliveries(id);
   }
 
+  @ApiBearerAuth()
+  @Get("integrations/status")
+  @RequirePermissions({
+    permission: Permission.COMMS_SEND,
+    scope: Scope.BRANCH,
+  })
+  integrationStatus() {
+    return {
+      mode: process.env.INTEGRATIONS_MODE ?? "simulated",
+      channels: this.messaging.status(),
+    };
+  }
+
   @Public()
   @Get("t/:trackingId")
   async track(@Param("trackingId") trackingId: string, @Res() res: Response) {
     await this.comms.trackClick(trackingId);
-    res.redirect(
-      302,
-      process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ??
-        "http://localhost:3000",
-    );
+    res.redirect(302, process.env.APP_URL ?? "http://localhost:3000");
   }
 }

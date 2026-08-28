@@ -81,6 +81,41 @@ export async function apiFetch<T>(
   return data as T;
 }
 
+/**
+ * Fetches a binary/text attachment with the bearer token attached and hands the
+ * browser a download. `apiFetch` cannot be reused because it parses JSON.
+ */
+export async function apiDownload(
+  path: string,
+  fallbackFilename: string,
+): Promise<void> {
+  const tokens = getTokens();
+  const headers = new Headers();
+  if (tokens?.accessToken)
+    headers.set("Authorization", `Bearer ${tokens.accessToken}`);
+
+  const res = await fetch(`${API_URL}${path}`, { headers });
+  if (!res.ok) {
+    throw new ApiClientError({
+      type: "about:blank",
+      title: res.statusText || "Download failed",
+      status: res.status,
+    });
+  }
+
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const match = /filename="?([^";]+)"?/i.exec(disposition);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = match?.[1] ?? fallbackFilename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   get: <T>(path: string) => apiFetch<T>(path),
   post: <T>(path: string, body?: unknown) =>

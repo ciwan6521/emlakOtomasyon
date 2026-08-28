@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Plus } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
+import { ExportCsvButton } from "@/components/export-csv-button";
 
 import { StatusBadge } from "@/components/status-badge";
 
@@ -107,12 +108,15 @@ export default function LeadsPage() {
   return (
     <div>
       <PageHeader
-        title="Leads"
-        description="Acquisition pipeline — scored, deduplicated and auto-assigned."
+        titleKey="page.leads.title"
+        descriptionKey="page.leads.subtitle"
         action={
-          <CreateLeadDialog
-            onCreated={() => qc.invalidateQueries({ queryKey: ["leads"] })}
-          />
+          <>
+            <ExportCsvButton resource="leads" />
+            <CreateLeadDialog
+              onCreated={() => qc.invalidateQueries({ queryKey: ["leads"] })}
+            />
+          </>
         }
       />
 

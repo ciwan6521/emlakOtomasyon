@@ -83,7 +83,7 @@ export class LeadsService {
   }
 
   async create(dto: CreateLeadDto): Promise<LeadDto> {
-    const { companyId, branchId, userId } = this.ctx();
+    const { companyId, branchId } = this.ctx();
     const score = scoreLead(dto);
     const dedupHash = computeDedupHash({ phone: dto.phone, email: dto.email });
     const raw = dto.rawPayload as Record<string, unknown> | undefined;

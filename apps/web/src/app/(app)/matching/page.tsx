@@ -51,8 +51,8 @@ export default function MatchingPage() {
   return (
     <div>
       <PageHeader
-        title="Smart Matching"
-        description="Customer → suitable homes. Scored on region, budget, type and rooms."
+        titleKey="page.matching.title"
+        descriptionKey="page.matching.subtitle"
       />
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>

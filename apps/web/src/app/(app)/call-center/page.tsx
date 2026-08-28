@@ -142,8 +142,8 @@ export default function CallCenterPage() {
   return (
     <div>
       <PageHeader
-        title="Call Center"
-        description="Outbound queue prioritized by lead score."
+        titleKey="page.callCenter.title"
+        descriptionKey="page.callCenter.subtitle"
       />
 
       <div className="grid gap-4 lg:grid-cols-3">

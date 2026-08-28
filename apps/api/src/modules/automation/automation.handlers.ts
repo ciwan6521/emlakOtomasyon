@@ -140,7 +140,7 @@ export class AutomationEventHandlers {
       type: NotificationType.LEAD_ASSIGNED,
       title: "Lead assigned",
       body: lead.fullName,
-      link: `/leads/${lead.id}`,
+      link: `/leads?focus=${lead.id}`,
     });
   }
 

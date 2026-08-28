@@ -102,8 +102,8 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title="Management Center"
-        description="Live operational command center across all branches."
+        titleKey="page.dashboard.title"
+        descriptionKey="page.dashboard.subtitle"
       />
 
       {isLoading || !k ? (

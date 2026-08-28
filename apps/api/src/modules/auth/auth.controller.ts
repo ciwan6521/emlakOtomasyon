@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Post, Req } from "@nestjs/common";
+import { Body, Controller, Get, Patch, Post, Req } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { CurrentUser, Public } from "../../common/auth/decorators";
 import { AuthService } from "./auth.service";
-import { LoginDto, RefreshDto } from "./dto";
+import { LoginDto, RefreshDto, UpdateMyLocaleDto } from "./dto";
 
 @ApiTags("auth")
 @Controller("auth")
@@ -38,5 +38,15 @@ export class AuthController {
   @Get("me")
   me(@CurrentUser("id") userId: string) {
     return this.auth.me(userId);
+  }
+
+  /** Any signed-in user may change their own UI language, no permission needed. */
+  @ApiBearerAuth()
+  @Patch("me/locale")
+  updateLocale(
+    @CurrentUser("id") userId: string,
+    @Body() dto: UpdateMyLocaleDto,
+  ) {
+    return this.auth.updateLocale(userId, dto.locale);
   }
 }

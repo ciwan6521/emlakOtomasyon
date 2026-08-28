@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { Moon, Search, Sun } from "lucide-react";
+import { Check, Globe, Moon, Search, Sun } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,14 +14,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth-store";
 import { initials } from "@/lib/utils";
-import { ROLE_LABELS, Role } from "@reos/shared";
+import { Locale, LOCALE_LABELS, ROLE_LABELS, Role } from "@reos/shared";
 import { NotificationBell } from "./notification-bell";
-import { useT } from "@/lib/i18n/locale-context";
+import { useLocale, useT } from "@/lib/i18n/locale-context";
 
 export function Topbar() {
   const { theme, setTheme } = useTheme();
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
+  const { locale, setLocale } = useLocale();
   const t = useT();
 
   return (
@@ -42,11 +43,37 @@ export function Topbar() {
       </button>
 
       <div className="ml-auto flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={t("common.language")}
+            >
+              <Globe className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>{t("common.language")}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {Object.values(Locale).map((value) => (
+              <DropdownMenuItem
+                key={value}
+                onClick={() => setLocale(value)}
+                className="justify-between"
+              >
+                {LOCALE_LABELS[value]}
+                {locale === value && <Check className="h-4 w-4" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          aria-label="Toggle theme"
+          aria-label={t("common.toggleTheme")}
         >
           <Sun className="h-4 w-4 dark:hidden" />
           <Moon className="hidden h-4 w-4 dark:block" />

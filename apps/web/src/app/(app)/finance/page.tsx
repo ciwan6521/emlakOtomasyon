@@ -83,8 +83,8 @@ export default function FinancePage() {
   return (
     <div>
       <PageHeader
-        title="Finance"
-        description="Commissions and invoices. Commissions are created when a deal closes."
+        titleKey="page.finance.title"
+        descriptionKey="page.finance.subtitle"
       />
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -83,8 +83,8 @@ export default function BranchesPage() {
   return (
     <div>
       <PageHeader
-        title="Branch Management"
-        description="Operate each office (Budva, Podgorica, Kotor, Tivat…) independently."
+        titleKey="page.branches.title"
+        descriptionKey="page.branches.subtitle"
         action={
           canManage && (
             <Button onClick={() => setForm(EMPTY)}>

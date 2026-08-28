@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { Permission, Scope } from "@reos/shared";
-import { Public, RequirePermissions } from "../../../common/auth/decorators";
+import { RequirePermissions } from "../../../common/auth/decorators";
 import {
   AssignLeadDto,
   CreateLeadDto,
@@ -40,16 +40,17 @@ export class LeadsController {
     return this.leads.create(dto);
   }
 
-  @Public()
+  /**
+   * Authenticated bulk/portal ingest. Unauthenticated sources must use
+   * `POST /public/:slug/leads`, which resolves the tenant from the slug.
+   */
   @Post("ingest")
+  @RequirePermissions({
+    permission: Permission.LEAD_CREATE,
+    scope: Scope.BRANCH,
+  })
   ingest(@Body() dto: CreateLeadDto) {
     return this.leads.ingest(dto);
-  }
-
-  @Get(":id/detail")
-  @RequirePermissions({ permission: Permission.LEAD_VIEW, scope: Scope.OWN })
-  detail(@Param("id") id: string) {
-    return this.leads.getDetail(id);
   }
 
   @Get(":id")

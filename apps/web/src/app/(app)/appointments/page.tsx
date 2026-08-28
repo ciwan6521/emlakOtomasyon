@@ -192,8 +192,8 @@ export default function AppointmentsPage() {
   return (
     <div>
       <PageHeader
-        title="Appointments"
-        description="Viewings and meetings calendar. Creates a task and notification for the assigned agent."
+        titleKey="page.appointments.title"
+        descriptionKey="page.appointments.subtitle"
         action={
           canManage && (
             <Button onClick={() => setCreating(true)}>

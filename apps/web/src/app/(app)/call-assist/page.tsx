@@ -49,6 +49,7 @@ const CHANNELS: {
   icon: typeof MessageCircle;
 }[] = [
   { value: CommChannel.WHATSAPP, label: "WhatsApp", icon: MessageCircle },
+  { value: CommChannel.VIBER, label: "Viber", icon: MessageCircle },
   { value: CommChannel.TELEGRAM, label: "Telegram", icon: Send },
   { value: CommChannel.SMS, label: "SMS", icon: Phone },
   { value: CommChannel.EMAIL, label: "Email", icon: Mail },
@@ -171,8 +172,8 @@ export default function CallAssistPage() {
   return (
     <div className="flex flex-col gap-4 pb-40">
       <PageHeader
-        title="Live Call Assist"
-        description="Search listings while on a call and send matches to the customer."
+        titleKey="page.callAssist.title"
+        descriptionKey="page.callAssist.subtitle"
       />
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">

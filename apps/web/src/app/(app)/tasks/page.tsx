@@ -81,8 +81,8 @@ export default function TasksPage() {
   return (
     <div>
       <PageHeader
-        title="Tasks"
-        description="Drag cards between columns to update status. Calls, follow-ups, shoots, listings and content."
+        titleKey="page.tasks.title"
+        descriptionKey="page.tasks.subtitle"
       />
       <KanbanBoard
         onMove={(id, to) => move.mutate({ id, status: to as TaskStatus })}

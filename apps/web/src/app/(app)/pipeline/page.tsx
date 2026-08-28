@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { Card } from "@/components/ui/card";
 import { KanbanBoard, KanbanCard, KanbanColumn } from "@/components/kanban";
 import { api } from "@/lib/api";
@@ -74,8 +75,9 @@ export default function PipelinePage() {
   return (
     <div>
       <PageHeader
-        title="Pipeline"
-        description="Drag deals across stages. End-to-end business pipeline from lead to closed deal."
+        titleKey="page.pipeline.title"
+        descriptionKey="page.pipeline.subtitle"
+        action={<ExportCsvButton resource="deals" />}
       />
       <KanbanBoard
         onMove={(id, to) => move.mutate({ id, stage: to as DealStage })}

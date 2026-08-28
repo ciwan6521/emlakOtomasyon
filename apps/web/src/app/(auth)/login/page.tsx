@@ -26,13 +26,24 @@ const QUICK_LOGINS = [
   { labelKey: "login.roleCallCenter" as const, email: "callcenter@adriatic.me" },
 ];
 
+const DEMO_PASSWORD = "Passw0rd!";
+
+// Seeded demo credentials must never ship to a real deployment; opt in
+// explicitly at build time.
+const DEMO_LOGIN_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === "true";
+
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuth((s) => s.login);
   const { locale, setLocale } = useLocale();
   const t = useT();
-  const [email, setEmail] = useState("owner@adriatic.me");
-  const [password, setPassword] = useState("Passw0rd!");
+  const [email, setEmail] = useState(
+    DEMO_LOGIN_ENABLED ? "owner@adriatic.me" : "",
+  );
+  const [password, setPassword] = useState(
+    DEMO_LOGIN_ENABLED ? DEMO_PASSWORD : "",
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -78,7 +89,9 @@ export default function LoginPage() {
                 {t("login.signIn")}
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                {t("login.subtitle")}
+                {DEMO_LOGIN_ENABLED
+                  ? t("login.subtitle")
+                  : t("login.subtitlePlain")}
               </p>
             </div>
             <div className="w-44 shrink-0 space-y-1">
@@ -129,30 +142,32 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {t("login.quickDemo")}
-            </p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {QUICK_LOGINS.map((q) => (
-                <Card
-                  key={q.email}
-                  className="cursor-pointer transition-colors hover:border-primary"
-                  onClick={() => {
-                    setEmail(q.email);
-                    setPassword("Passw0rd!");
-                  }}
-                >
-                  <CardContent className="p-3">
-                    <p className="text-sm font-medium">{t(q.labelKey)}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {q.email}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+          {DEMO_LOGIN_ENABLED && (
+            <div className="mt-6">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t("login.quickDemo")}
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {QUICK_LOGINS.map((q) => (
+                  <Card
+                    key={q.email}
+                    className="cursor-pointer transition-colors hover:border-primary"
+                    onClick={() => {
+                      setEmail(q.email);
+                      setPassword(DEMO_PASSWORD);
+                    }}
+                  >
+                    <CardContent className="p-3">
+                      <p className="text-sm font-medium">{t(q.labelKey)}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {q.email}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

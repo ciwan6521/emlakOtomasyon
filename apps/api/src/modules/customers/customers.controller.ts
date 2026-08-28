@@ -41,15 +41,6 @@ export class CustomersController {
     return this.customers.create(dto);
   }
 
-  @Get(":id/detail")
-  @RequirePermissions({
-    permission: Permission.CUSTOMER_VIEW,
-    scope: Scope.OWN,
-  })
-  detail(@Param("id") id: string) {
-    return this.customers.getDetail(id);
-  }
-
   @Get(":id")
   @RequirePermissions({
     permission: Permission.CUSTOMER_VIEW,

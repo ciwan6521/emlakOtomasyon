@@ -53,6 +53,39 @@ export class AiAdapter {
     return { title: ctx.title, description: SIM_TEMPLATES[locale](ctx) };
   }
 
+  /** Short social caption with hashtags for an Instagram/Facebook post. */
+  async caption(
+    ctx: ListingContext,
+    locale: Locale,
+  ): Promise<{ caption: string }> {
+    if (this.useOpenAi) {
+      try {
+        const content = await this.chat([
+          {
+            role: "system",
+            content:
+              "You write short social media captions for a premium Montenegrin real-estate agency. " +
+              "Two sentences maximum, then 3-5 relevant hashtags on a new line. Return plain text only.",
+          },
+          {
+            role: "user",
+            content:
+              `Write the caption in ${LOCALE_NAMES[locale]}. Property: ${ctx.title}, type ${ctx.type}, ` +
+              `${ctx.rooms} rooms, ${ctx.sizeM2} m², in ${cap(ctx.region)}, priced ${fmt(ctx.price, ctx.currency)}.`,
+          },
+        ]);
+        if (content) return { caption: content.trim() };
+      } catch (err) {
+        this.logger.warn(
+          `OpenAI caption() failed, falling back to template: ${(err as Error).message}`,
+        );
+      }
+    }
+    return {
+      caption: `${SIM_TEMPLATES[locale](ctx)}\n${hashtags(ctx)}`,
+    };
+  }
+
   async suggestPrice(ctx: {
     region: string;
     type: string;
@@ -148,6 +181,14 @@ const SIM_TEMPLATES: Record<Locale, (c: ListingContext) => string> = {
 
 const cap = (s: string) =>
   s.charAt(0) + s.slice(1).toLowerCase().replace(/_/g, " ");
+const hashtags = (c: ListingContext) =>
+  [
+    "#montenegro",
+    `#${c.region.toLowerCase().replace(/_/g, "")}`,
+    `#${c.type.toLowerCase()}`,
+    "#realestate",
+    "#nekretnine",
+  ].join(" ");
 const fmt = (n: number, c: string) => `${n.toLocaleString("en-US")} ${c}`;
 const typeTr = (t: string) =>
   (

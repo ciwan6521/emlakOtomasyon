@@ -1,4 +1,5 @@
-import { IsEmail, IsString, MinLength } from "class-validator";
+import { IsEmail, IsEnum, IsString, MinLength } from "class-validator";
+import { Locale } from "@reos/shared";
 
 export class LoginDto {
   @IsEmail()
@@ -12,4 +13,9 @@ export class LoginDto {
 export class RefreshDto {
   @IsString()
   refreshToken!: string;
+}
+
+export class UpdateMyLocaleDto {
+  @IsEnum(Locale)
+  locale!: Locale;
 }

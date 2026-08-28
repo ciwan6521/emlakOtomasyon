@@ -77,6 +77,8 @@ export interface AuthUser {
   branchId: string | null;
   roles: Role[];
   avatarUrl?: string | null;
+  /** Personal UI language; null means "follow the company default". */
+  locale?: Locale | null;
 }
 export interface LoginResponse extends AuthTokens {
   user: AuthUser;
@@ -235,6 +237,7 @@ export interface CustomerDto {
   phone: string;
   email: string | null;
   whatsapp: string | null;
+  viberId: string | null;
   kind: CustomerKind;
   intent: CustomerIntent;
   segment: CustomerSegment;

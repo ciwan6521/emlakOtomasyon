@@ -102,8 +102,8 @@ export default function DocumentsPage() {
   return (
     <div>
       <PageHeader
-        title="Documents"
-        description="Contracts, title deeds, IDs, and other documents. Upload, track status, and sign."
+        titleKey="page.documents.title"
+        descriptionKey="page.documents.subtitle"
         action={
           canManage && (
             <div className="flex items-center gap-2">

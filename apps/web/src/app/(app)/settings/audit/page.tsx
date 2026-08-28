@@ -36,8 +36,8 @@ export default function AuditPage() {
   return (
     <div>
       <PageHeader
-        title="Audit Trail"
-        description="Immutable record of every meaningful action across the platform."
+        titleKey="page.audit.title"
+        descriptionKey="page.audit.subtitle"
       />
       <Card className="overflow-x-auto">
         <Table>

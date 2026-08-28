@@ -126,8 +126,8 @@ export default function OnboardingPage() {
   return (
     <div>
       <PageHeader
-        title="Owner Onboarding"
-        description="Review owner submissions and approve to create listings."
+        titleKey="page.onboarding.title"
+        descriptionKey="page.onboarding.subtitle"
       />
       <Tabs value={status} onValueChange={setStatus}>
         <TabsList className="mb-4">

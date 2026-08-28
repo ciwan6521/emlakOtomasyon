@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "node:crypto";
-import { LoginResponse, Role } from "@reos/shared";
+import { Locale, LoginResponse, Role } from "@reos/shared";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { JwtPayload } from "../../common/auth/jwt.strategy";
@@ -110,8 +110,19 @@ export class AuthService {
         branchId: true,
         roles: true,
         avatarUrl: true,
+        locale: true,
       },
     });
+  }
+
+  /** Personal UI language, overriding the company default for this user only. */
+  async updateLocale(userId: string, locale: Locale) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { locale },
+      select: { id: true, locale: true },
+    });
+    return user;
   }
 
   private async issueTokens(payload: JwtPayload) {

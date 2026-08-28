@@ -549,8 +549,8 @@ export default function RentalsPage() {
   return (
     <div>
       <PageHeader
-        title="Rentals"
-        description="Leases, rent collection, owner payouts, maintenance, and short-term availability."
+        titleKey="page.rentals.title"
+        descriptionKey="page.rentals.subtitle"
         action={
           canManage && (
             <Button onClick={() => setCreatingLease(true)}>
@@ -567,7 +567,7 @@ export default function RentalsPage() {
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="payouts">Owner payouts</TabsTrigger>
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-          <TabsTrigger value="calendar">Takvim (STR)</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar (STR)</TabsTrigger>
         </TabsList>
 
         {/* ── Overview ── */}
@@ -636,7 +636,7 @@ export default function RentalsPage() {
                   <TableHead>Tenant</TableHead>
                   <TableHead>Period</TableHead>
                   <TableHead>Rent</TableHead>
-                  <TableHead>Durum</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Stage</TableHead>
                 </TableRow>
               </TableHeader>
@@ -734,10 +734,10 @@ export default function RentalsPage() {
                 <TableRow>
                   <TableHead>Property</TableHead>
                   <TableHead>Tenant</TableHead>
-                  <TableHead>Vade</TableHead>
-                  <TableHead>Tutar</TableHead>
+                  <TableHead>Due</TableHead>
+                  <TableHead>Amount</TableHead>
                   <TableHead>Paid</TableHead>
-                  <TableHead>Durum</TableHead>
+                  <TableHead>Status</TableHead>
                   {canManage && <TableHead className="w-28" />}
                 </TableRow>
               </TableHeader>
@@ -821,7 +821,7 @@ export default function RentalsPage() {
                   <TableHead>Period</TableHead>
                   <TableHead>Gross</TableHead>
                   <TableHead>Net</TableHead>
-                  <TableHead>Durum</TableHead>
+                  <TableHead>Status</TableHead>
                   {canManage && <TableHead className="w-28" />}
                 </TableRow>
               </TableHeader>
@@ -932,8 +932,8 @@ export default function RentalsPage() {
                   <TableHead>Property</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Priority</TableHead>
-                  <TableHead>Durum</TableHead>
-                  <TableHead>Tarih</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
                   {canManage && <TableHead className="w-40" />}
                 </TableRow>
               </TableHeader>
@@ -1395,10 +1395,10 @@ export default function RentalsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Vade</TableHead>
-                        <TableHead>Tutar</TableHead>
+                        <TableHead>Due</TableHead>
+                        <TableHead>Amount</TableHead>
                         <TableHead>Paid</TableHead>
-                        <TableHead>Durum</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1847,7 +1847,7 @@ export default function RentalsPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAddingBlock(false)}>
-              Cancelled
+              Cancel
             </Button>
             <Button
               disabled={
@@ -1857,7 +1857,7 @@ export default function RentalsPage() {
               }
               onClick={() => createAvailability.mutate()}
             >
-              {createAvailability.isPending ? "Ekleniyor…" : "Ekle"}
+              {createAvailability.isPending ? "Adding…" : "Add"}
             </Button>
           </DialogFooter>
         </DialogContent>
