@@ -6,6 +6,7 @@ import { Public, RequirePermissions } from "../../common/auth/decorators";
 import { CreateCampaignDto, CreateTemplateDto } from "./dto";
 import { CommunicationService } from "./communication.service";
 import { MessagingAdapter } from "../integrations/messaging.adapter";
+import { SocialAdapter } from "../integrations/social.adapter";
 
 @ApiTags("communication")
 @Controller()
@@ -13,6 +14,7 @@ export class CommunicationController {
   constructor(
     private readonly comms: CommunicationService,
     private readonly messaging: MessagingAdapter,
+    private readonly social: SocialAdapter,
   ) {}
 
   @ApiBearerAuth()
@@ -81,10 +83,11 @@ export class CommunicationController {
     permission: Permission.COMMS_SEND,
     scope: Scope.BRANCH,
   })
-  integrationStatus() {
+  async integrationStatus() {
     return {
       mode: process.env.INTEGRATIONS_MODE ?? "simulated",
       channels: this.messaging.status(),
+      social: await this.social.status(),
     };
   }
 

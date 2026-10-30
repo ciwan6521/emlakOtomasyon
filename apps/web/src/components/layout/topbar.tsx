@@ -14,9 +14,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth-store";
 import { initials } from "@/lib/utils";
-import { Locale, LOCALE_LABELS, ROLE_LABELS, Role } from "@reos/shared";
+import { Locale, LOCALE_LABELS, Role } from "@reos/shared";
 import { NotificationBell } from "./notification-bell";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
+import { ROLE_LABEL_KEYS } from "@/lib/i18n/packs/settings";
 
 export function Topbar() {
   const { theme, setTheme } = useTheme();
@@ -94,7 +95,9 @@ export function Topbar() {
                   {user?.fullName}
                 </p>
                 <p className="text-xs text-muted-foreground leading-tight">
-                  {user?.roles?.map((r) => ROLE_LABELS[r as Role]).join(", ")}
+                  {user?.roles
+                    ?.map((r) => t(ROLE_LABEL_KEYS[r as Role]))
+                    .join(", ")}
                 </p>
               </div>
             </button>

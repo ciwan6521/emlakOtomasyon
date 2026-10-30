@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { useT } from "@/lib/i18n/locale-context";
 import type { CustomerDto, Paginated, PropertyDto } from "@reos/shared";
 
 type FormState = {
@@ -50,6 +51,7 @@ export function AppointmentDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const t = useT();
   const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(EMPTY);
 
@@ -92,24 +94,23 @@ export function AppointmentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New appointment</DialogTitle>
+          <DialogTitle>{t("appointments.new")}</DialogTitle>
           <DialogDescription>
-            Schedule a viewing or meeting. Creates a task and notification for
-            the assigned agent.
+            {t("appointments.dialogDescription")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Title</Label>
+            <Label>{t("appointments.fieldTitle")}</Label>
             <Input
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="e.g. Budva apartment viewing"
+              placeholder={t("appointments.titlePlaceholder")}
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Start</Label>
+            <Label>{t("appointments.start")}</Label>
             <Input
               type="datetime-local"
               value={form.startAt}
@@ -117,7 +118,7 @@ export function AppointmentDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>End (optional)</Label>
+            <Label>{t("appointments.endOptional")}</Label>
             <Input
               type="datetime-local"
               value={form.endAt}
@@ -125,7 +126,7 @@ export function AppointmentDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Property</Label>
+            <Label>{t("appointments.property")}</Label>
             <Select
               value={form.propertyId || "NONE"}
               onValueChange={(v) =>
@@ -133,10 +134,10 @@ export function AppointmentDialog({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="None" />
+                <SelectValue placeholder={t("common.none")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NONE">None</SelectItem>
+                <SelectItem value="NONE">{t("common.none")}</SelectItem>
                 {properties?.data.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.title}
@@ -146,7 +147,7 @@ export function AppointmentDialog({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Customer</Label>
+            <Label>{t("appointments.customer")}</Label>
             <Select
               value={form.customerId || "NONE"}
               onValueChange={(v) =>
@@ -154,10 +155,10 @@ export function AppointmentDialog({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="None" />
+                <SelectValue placeholder={t("common.none")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NONE">None</SelectItem>
+                <SelectItem value="NONE">{t("common.none")}</SelectItem>
                 {customers?.data.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.fullName}
@@ -167,15 +168,15 @@ export function AppointmentDialog({
             </Select>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Location</Label>
+            <Label>{t("appointments.location")}</Label>
             <Input
               value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
-              placeholder="Address or meeting point"
+              placeholder={t("appointments.locationPlaceholder")}
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Notes</Label>
+            <Label>{t("common.notes")}</Label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -187,13 +188,13 @@ export function AppointmentDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             disabled={!valid || save.isPending}
             onClick={() => save.mutate()}
           >
-            {save.isPending ? "Saving…" : "Create appointment"}
+            {save.isPending ? t("common.saving") : t("appointments.create")}
           </Button>
         </DialogFooter>
       </DialogContent>

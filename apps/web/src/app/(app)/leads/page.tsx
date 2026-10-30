@@ -52,30 +52,19 @@ import { api } from "@/lib/api";
 
 import { formatCurrency, formatDate, relativeTime } from "@/lib/utils";
 
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
+
 import {
-  CALL_RESULT_LABELS,
-  LEAD_KIND_LABELS,
-  LEAD_STATUS_LABELS,
   LeadKind,
   LeadSource,
   LeadStatus,
-  OwnerRating,
   Region,
+  REGION_LABELS,
   type CreateLeadRequest,
   type LeadDetailDto,
   type LeadDto,
   type Paginated,
 } from "@reos/shared";
-
-const OWNER_RATING_LABEL: Record<OwnerRating, string> = {
-  EXCELLENT: "Excellent",
-  GOOD: "Good",
-  AVERAGE: "Average",
-
-  DIFFICULT: "Difficult",
-  PROBLEM: "Problem",
-  BLACKLIST: "Blacklist",
-};
 
 export default function LeadsPage() {
   return (
@@ -86,6 +75,10 @@ export default function LeadsPage() {
 }
 
 function LeadsView() {
+  const t = useT();
+
+  const e = useEnumLabel();
+
   const qc = useQueryClient();
 
   const router = useRouter();
@@ -141,9 +134,9 @@ function LeadsView() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Input
-          placeholder="Search name or phone…"
+          placeholder={t("leads.searchPlaceholder")}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(ev) => setSearch(ev.target.value)}
           className="max-w-xs"
         />
 
@@ -153,11 +146,11 @@ function LeadsView() {
           </SelectTrigger>
 
           <SelectContent>
-            <SelectItem value="ALL">All statuses</SelectItem>
+            <SelectItem value="ALL">{t("leads.allStatuses")}</SelectItem>
 
             {Object.values(LeadStatus).map((s) => (
               <SelectItem key={s} value={s}>
-                {LEAD_STATUS_LABELS[s]}
+                {e("status", s)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -170,23 +163,25 @@ function LeadsView() {
             <TableRow>
               <TableHead className="w-12" />
 
-              <TableHead>Name</TableHead>
+              <TableHead>{t("common.name")}</TableHead>
 
-              <TableHead>Phone</TableHead>
+              <TableHead>{t("common.phone")}</TableHead>
 
-              <TableHead>Source</TableHead>
+              <TableHead>{t("leads.table.source")}</TableHead>
 
-              <TableHead>Region</TableHead>
+              <TableHead>{t("leads.table.region")}</TableHead>
 
-              <TableHead>Score</TableHead>
+              <TableHead>{t("leads.table.score")}</TableHead>
 
-              <TableHead>Status</TableHead>
+              <TableHead>{t("common.status")}</TableHead>
 
-              <TableHead>Assignee</TableHead>
+              <TableHead>{t("leads.table.assignee")}</TableHead>
 
-              <TableHead>Created</TableHead>
+              <TableHead>{t("leads.table.created")}</TableHead>
 
-              <TableHead className="text-right">Move to</TableHead>
+              <TableHead className="text-right">
+                {t("leads.table.moveTo")}
+              </TableHead>
             </TableRow>
           </TableHeader>
 
@@ -219,11 +214,11 @@ function LeadsView() {
                 </TableCell>
 
                 <TableCell className="text-muted-foreground">
-                  {lead.source}
+                  {e("leadSource", lead.source)}
                 </TableCell>
 
                 <TableCell className="text-muted-foreground">
-                  {lead.region ?? "—"}
+                  {lead.region ? REGION_LABELS[lead.region] : "—"}
                 </TableCell>
 
                 <TableCell>
@@ -237,7 +232,7 @@ function LeadsView() {
                 </TableCell>
 
                 <TableCell className="text-muted-foreground">
-                  {lead.assignedToName ?? "Unassigned"}
+                  {lead.assignedToName ?? t("leads.unassigned")}
                 </TableCell>
 
                 <TableCell className="text-muted-foreground">
@@ -246,7 +241,7 @@ function LeadsView() {
 
                 <TableCell
                   className="text-right"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(ev) => ev.stopPropagation()}
                 >
                   <Select
                     onValueChange={(to) =>
@@ -254,13 +249,13 @@ function LeadsView() {
                     }
                   >
                     <SelectTrigger className="ml-auto h-8 w-32">
-                      <SelectValue placeholder="Transition" />
+                      <SelectValue placeholder={t("leads.transition")} />
                     </SelectTrigger>
 
                     <SelectContent>
                       {Object.values(LeadStatus).map((s) => (
                         <SelectItem key={s} value={s}>
-                          {LEAD_STATUS_LABELS[s]}
+                          {e("status", s)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -275,7 +270,7 @@ function LeadsView() {
                   colSpan={10}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading…
+                  {t("leads.loading")}
                 </TableCell>
               </TableRow>
             )}
@@ -286,7 +281,7 @@ function LeadsView() {
                   colSpan={10}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No leads found.
+                  {t("leads.empty")}
                 </TableCell>
               </TableRow>
             )}
@@ -316,6 +311,10 @@ function LeadDetailDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useT();
+
+  const e = useEnumLabel();
+
   const detail = useQuery({
     queryKey: ["leads", leadId, "detail"],
 
@@ -330,12 +329,12 @@ function LeadDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{lead?.fullName ?? "Lead detail"}</DialogTitle>
+          <DialogTitle>{lead?.fullName ?? t("leads.detail.title")}</DialogTitle>
         </DialogHeader>
 
         {detail.isLoading && (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            Loading…
+            {t("leads.loading")}
           </p>
         )}
 
@@ -346,7 +345,7 @@ function LeadDetailDialog({
                 <div className="relative h-24 w-32 shrink-0 overflow-hidden rounded-lg bg-muted">
                   <Image
                     src={lead.listingPhotoUrl}
-                    alt="Listing"
+                    alt={t("leads.detail.listingAlt")}
                     fill
                     className="object-cover"
                     sizes="128px"
@@ -360,7 +359,7 @@ function LeadDetailDialog({
                   <StatusBadge value={lead.status} />
 
                   <span className="text-xs text-muted-foreground">
-                    {LEAD_STATUS_LABELS[lead.status]}
+                    {e("status", lead.status)}
                   </span>
                 </div>
 
@@ -385,7 +384,8 @@ function LeadDetailDialog({
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                   >
-                    View listing <ExternalLink className="h-3.5 w-3.5" />
+                    {t("leads.detail.viewListing")}{" "}
+                    <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 )}
               </div>
@@ -393,36 +393,36 @@ function LeadDetailDialog({
 
             <div className="grid gap-3 sm:grid-cols-2">
               <InfoItem
-                label="Last call"
+                label={t("leads.detail.lastCall")}
                 value={lead.lastCallAt ? formatDate(lead.lastCallAt) : "—"}
               />
 
               <InfoItem
-                label="Last call result"
+                label={t("leads.detail.lastCallResult")}
                 value={
                   lead.lastCallResult
-                    ? CALL_RESULT_LABELS[lead.lastCallResult]
+                    ? e("callResult", lead.lastCallResult)
                     : "—"
                 }
               />
 
               <InfoItem
-                label="Owner rating"
+                label={t("leads.detail.ownerRating")}
                 value={
-                  lead.ownerRating ? OWNER_RATING_LABEL[lead.ownerRating] : "—"
+                  lead.ownerRating ? e("ownerRating", lead.ownerRating) : "—"
                 }
               />
 
               <InfoItem
-                label="Assignee"
-                value={lead.assignedToName ?? "Unassigned"}
+                label={t("leads.table.assignee")}
+                value={lead.assignedToName ?? t("leads.unassigned")}
               />
             </div>
 
             {lead.lastNote && (
               <div className="rounded-lg border p-3">
                 <p className="text-xs font-medium uppercase text-muted-foreground">
-                  Last note
+                  {t("leads.detail.lastNote")}
                 </p>
 
                 <p className="mt-1 text-sm">{lead.lastNote}</p>
@@ -430,12 +430,14 @@ function LeadDetailDialog({
             )}
 
             <div>
-              <p className="mb-2 text-sm font-semibold">Activities</p>
+              <p className="mb-2 text-sm font-semibold">
+                {t("leads.detail.activities")}
+              </p>
 
               <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border p-2">
                 {lead.activities.length === 0 && (
                   <p className="py-2 text-center text-xs text-muted-foreground">
-                    No activities yet.
+                    {t("leads.detail.noActivities")}
                   </p>
                 )}
 
@@ -460,11 +462,7 @@ function LeadDetailDialog({
 
                     {a.fromValue && a.toValue && (
                       <p className="mt-0.5 text-muted-foreground">
-                        {LEAD_STATUS_LABELS[a.fromValue as LeadStatus] ??
-                          a.fromValue}{" "}
-                        →{" "}
-                        {LEAD_STATUS_LABELS[a.toValue as LeadStatus] ??
-                          a.toValue}
+                        {e("status", a.fromValue)} → {e("status", a.toValue)}
                       </p>
                     )}
                   </div>
@@ -473,12 +471,14 @@ function LeadDetailDialog({
             </div>
 
             <div>
-              <p className="mb-2 text-sm font-semibold">Calls</p>
+              <p className="mb-2 text-sm font-semibold">
+                {t("leads.detail.calls")}
+              </p>
 
               <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border p-2">
                 {lead.calls.length === 0 && (
                   <p className="py-2 text-center text-xs text-muted-foreground">
-                    No calls logged yet.
+                    {t("leads.detail.noCalls")}
                   </p>
                 )}
 
@@ -489,7 +489,7 @@ function LeadDetailDialog({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium">
-                        {c.result ? CALL_RESULT_LABELS[c.result] : "—"}
+                        {c.result ? e("callResult", c.result) : "—"}
                       </span>
 
                       <span className="text-muted-foreground">
@@ -503,7 +503,9 @@ function LeadDetailDialog({
 
                     {c.followUpAt && (
                       <p className="mt-0.5 text-muted-foreground">
-                        Follow-up: {formatDate(c.followUpAt)}
+                        {t("leads.detail.followUp", {
+                          date: formatDate(c.followUpAt),
+                        })}
                       </p>
                     )}
                   </div>
@@ -530,6 +532,10 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 }
 
 function CreateLeadDialog({ onCreated }: { onCreated: () => void }) {
+  const t = useT();
+
+  const e = useEnumLabel();
+
   const [open, setOpen] = useState(false);
 
   const [form, setForm] = useState<CreateLeadRequest>({
@@ -558,35 +564,35 @@ function CreateLeadDialog({ onCreated }: { onCreated: () => void }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="h-4 w-4" /> New lead
+          <Plus className="h-4 w-4" /> {t("leads.newLead")}
         </Button>
       </DialogTrigger>
 
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create lead</DialogTitle>
+          <DialogTitle>{t("common.createLead")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label>Full name</Label>
+            <Label>{t("leads.form.fullName")}</Label>
             <Input
               value={form.fullName}
-              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              onChange={(ev) => setForm({ ...form, fullName: ev.target.value })}
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label>Phone</Label>
+            <Label>{t("common.phone")}</Label>
             <Input
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              onChange={(ev) => setForm({ ...form, phone: ev.target.value })}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Kind</Label>
+              <Label>{t("leads.form.kind")}</Label>
 
               <Select
                 value={form.kind}
@@ -599,7 +605,7 @@ function CreateLeadDialog({ onCreated }: { onCreated: () => void }) {
                 <SelectContent>
                   {Object.values(LeadKind).map((k) => (
                     <SelectItem key={k} value={k}>
-                      {LEAD_KIND_LABELS[k]}
+                      {e("leadKind", k)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -607,7 +613,7 @@ function CreateLeadDialog({ onCreated }: { onCreated: () => void }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Source</Label>
+              <Label>{t("leads.table.source")}</Label>
 
               <Select
                 value={form.source}
@@ -622,7 +628,7 @@ function CreateLeadDialog({ onCreated }: { onCreated: () => void }) {
                 <SelectContent>
                   {Object.values(LeadSource).map((s) => (
                     <SelectItem key={s} value={s}>
-                      {s}
+                      {e("leadSource", s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -631,20 +637,20 @@ function CreateLeadDialog({ onCreated }: { onCreated: () => void }) {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Region</Label>
+            <Label>{t("leads.table.region")}</Label>
 
             <Select
               value={form.region}
               onValueChange={(v) => setForm({ ...form, region: v as Region })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select region" />
+                <SelectValue placeholder={t("leads.form.selectRegion")} />
               </SelectTrigger>
 
               <SelectContent>
                 {Object.values(Region).map((r) => (
                   <SelectItem key={r} value={r}>
-                    {r}
+                    {REGION_LABELS[r]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -656,7 +662,7 @@ function CreateLeadDialog({ onCreated }: { onCreated: () => void }) {
             disabled={create.isPending || !form.fullName || !form.phone}
             onClick={() => create.mutate()}
           >
-            Create
+            {t("common.create")}
           </Button>
         </div>
       </DialogContent>

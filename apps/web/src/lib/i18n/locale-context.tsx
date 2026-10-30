@@ -14,6 +14,7 @@ import { Locale } from "@reos/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
 import { HTML_LANG, messages, type MessageKey } from "./messages";
+import { enumLabel, type EnumGroup } from "./enum-labels";
 
 const STORAGE_KEY = "reos.uiLocale";
 
@@ -21,10 +22,33 @@ interface CompanyLocaleDto {
   locale: Locale;
 }
 
+export type TranslateFn = (
+  key: MessageKey,
+  vars?: Record<string, string | number>,
+) => string;
+
+export type EnumLabelFn = (
+  group: EnumGroup,
+  value: string | null | undefined,
+) => string;
+
 interface LocaleContextValue {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: MessageKey) => string;
+  t: TranslateFn;
+  /** Localised label for an enum value, e.g. `e("status", "SOLD")`. */
+  e: EnumLabelFn;
+}
+
+/** Replaces `{name}` placeholders with the provided values. */
+function interpolate(
+  template: string,
+  vars?: Record<string, string | number>,
+): string {
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (match, name: string) =>
+    name in vars ? String(vars[name]) : match,
+  );
 }
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -82,15 +106,23 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
-  const t = useCallback(
-    (key: MessageKey) =>
-      messages[locale]?.[key] ?? messages[Locale.EN][key] ?? key,
+  const t = useCallback<TranslateFn>(
+    (key, vars) =>
+      interpolate(
+        messages[locale]?.[key] ?? messages[Locale.EN][key] ?? key,
+        vars,
+      ),
+    [locale],
+  );
+
+  const e = useCallback<EnumLabelFn>(
+    (group, value) => enumLabel(locale, group, value),
     [locale],
   );
 
   const value = useMemo(
-    () => ({ locale, setLocale, t }),
-    [locale, setLocale, t],
+    () => ({ locale, setLocale, t, e }),
+    [locale, setLocale, t, e],
   );
 
   return (
@@ -106,4 +138,9 @@ export function useLocale() {
 
 export function useT() {
   return useLocale().t;
+}
+
+/** Localised enum labels: `const e = useEnumLabel(); e("status", lead.status)`. */
+export function useEnumLabel() {
+  return useLocale().e;
 }

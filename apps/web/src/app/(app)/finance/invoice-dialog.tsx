@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { useT } from "@/lib/i18n/locale-context";
 import type { CustomerDto, Paginated } from "@reos/shared";
 
 type FormState = {
@@ -38,6 +39,7 @@ export function InvoiceDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const t = useT();
   const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(EMPTY);
 
@@ -69,15 +71,13 @@ export function InvoiceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>New invoice</DialogTitle>
-          <DialogDescription>
-            Invoice number is assigned automatically; status starts as SENT.
-          </DialogDescription>
+          <DialogTitle>{t("invoice.title")}</DialogTitle>
+          <DialogDescription>{t("invoice.description")}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
           <div className="space-y-1.5">
-            <Label>Amount (EUR)</Label>
+            <Label>{t("invoice.amount")}</Label>
             <Input
               type="number"
               value={form.amount}
@@ -85,7 +85,7 @@ export function InvoiceDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Customer</Label>
+            <Label>{t("invoice.customer")}</Label>
             <Select
               value={form.customerId || "NONE"}
               onValueChange={(v) =>
@@ -93,10 +93,10 @@ export function InvoiceDialog({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="None" />
+                <SelectValue placeholder={t("common.none")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NONE">None</SelectItem>
+                <SelectItem value="NONE">{t("common.none")}</SelectItem>
                 {customers?.data.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.fullName}
@@ -106,7 +106,7 @@ export function InvoiceDialog({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Due date</Label>
+            <Label>{t("invoice.dueDate")}</Label>
             <Input
               type="date"
               value={form.dueAt}
@@ -114,7 +114,7 @@ export function InvoiceDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Notes</Label>
+            <Label>{t("common.notes")}</Label>
             <Input
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -124,13 +124,13 @@ export function InvoiceDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             disabled={!form.amount || save.isPending}
             onClick={() => save.mutate()}
           >
-            {save.isPending ? "Saving…" : "Create invoice"}
+            {save.isPending ? t("common.saving") : t("invoice.create")}
           </Button>
         </DialogFooter>
       </DialogContent>

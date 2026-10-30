@@ -51,18 +51,21 @@ export function CommandPalette() {
       <CommandList>
         <CommandEmpty>{t("common.noResults")}</CommandEmpty>
         <CommandGroup heading={t("common.navigate")}>
-          {items.map((item) => (
-            <CommandItem
-              key={item.href}
-              value={item.label}
-              onSelect={() => go(item.href)}
-            >
-              <item.icon className="h-4 w-4" />
-              {NAV_LABEL_KEYS[item.href]
-                ? t(NAV_LABEL_KEYS[item.href])
-                : item.label}
-            </CommandItem>
-          ))}
+          {items.map((item) => {
+            const label = NAV_LABEL_KEYS[item.href]
+              ? t(NAV_LABEL_KEYS[item.href])
+              : item.label;
+            return (
+              <CommandItem
+                key={item.href}
+                value={label}
+                onSelect={() => go(item.href)}
+              >
+                <item.icon className="h-4 w-4" />
+                {label}
+              </CommandItem>
+            );
+          })}
         </CommandGroup>
         <CommandGroup heading={t("common.quickActions")}>
           <CommandItem value="new lead" onSelect={() => go("/leads?new=1")}>

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/status-badge";
 import { api } from "@/lib/api";
+import { useT } from "@/lib/i18n/locale-context";
 import { cn, relativeTime } from "@/lib/utils";
 import { SocialChannel } from "@reos/shared";
 
@@ -23,8 +24,14 @@ interface SocialPost {
   createdAt: string;
 }
 
+/** Social channels are brand names (Instagram, Facebook): no translation. */
+function channelLabel(channel: string): string {
+  return channel.charAt(0) + channel.slice(1).toLowerCase();
+}
+
 export default function SocialPage() {
   const qc = useQueryClient();
+  const t = useT();
   const [draftCaption, setDraftCaption] = useState("");
   const [propertyId, setPropertyId] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -71,20 +78,20 @@ export default function SocialPage() {
       <Card className="mb-4">
         <CardContent className="grid gap-4 p-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Property ID (optional, for AI caption)</Label>
+            <Label>{t("social.propertyIdLabel")}</Label>
             <Input
               value={propertyId}
               onChange={(e) => setPropertyId(e.target.value)}
-              placeholder="Property UUID"
+              placeholder={t("social.propertyIdPlaceholder")}
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Caption</Label>
+            <Label>{t("social.caption")}</Label>
             <textarea
               rows={4}
               value={draftCaption}
               onChange={(e) => setDraftCaption(e.target.value)}
-              placeholder="Write or generate a caption…"
+              placeholder={t("social.captionPlaceholder")}
               className={cn(
                 "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
                 "ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -98,18 +105,20 @@ export default function SocialPage() {
               title={
                 propertyId.trim()
                   ? undefined
-                  : "Enter a property ID to generate a caption"
+                  : t("social.aiCaptionHint")
               }
               onClick={generateCaption}
             >
               <Sparkles className="mr-1.5 h-4 w-4" />
-              {generating ? "Generating…" : "AI caption"}
+              {generating ? t("social.generating") : t("social.aiCaption")}
             </Button>
             <Button
               disabled={!draftCaption.trim() || createPost.isPending}
               onClick={() => createPost.mutate()}
             >
-              {createPost.isPending ? "Creating…" : "Create post"}
+              {createPost.isPending
+                ? t("common.creating")
+                : t("social.createPost")}
             </Button>
           </div>
         </CardContent>
@@ -123,7 +132,7 @@ export default function SocialPage() {
                 <div className="flex gap-1">
                   {post.channels.map((c) => (
                     <Badge key={c} variant="secondary">
-                      {c}
+                      {channelLabel(c)}
                     </Badge>
                   ))}
                 </div>
@@ -132,16 +141,16 @@ export default function SocialPage() {
               <p className="whitespace-pre-line text-sm">{post.caption}</p>
               <p className="text-xs text-muted-foreground">
                 {post.status === "SCHEDULED" && post.scheduleAt
-                  ? `Scheduled ${relativeTime(post.scheduleAt)}`
+                  ? t("social.scheduledAt", {
+                      time: relativeTime(post.scheduleAt),
+                    })
                   : relativeTime(post.createdAt)}
               </p>
             </CardContent>
           </Card>
         ))}
         {(!data || data.length === 0) && (
-          <p className="text-sm text-muted-foreground">
-            No posts yet. Publishing a property auto-creates posts.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("social.empty")}</p>
         )}
       </div>
     </div>

@@ -9,18 +9,18 @@ describe("scoreLead", () => {
     expect(referral).toBeGreaterThan(manual);
   });
 
-  it("boosts prime coastal regions", () => {
-    const inland = scoreLead({
+  it("boosts prime central districts", () => {
+    const outskirts = scoreLead({
       source: LeadSource.PORTAL,
       phone: "+38269123456",
-      region: Region.PODGORICA,
+      region: Region.KONIK,
     });
-    const coast = scoreLead({
+    const central = scoreLead({
       source: LeadSource.PORTAL,
       phone: "+38269123456",
-      region: Region.BUDVA,
+      region: Region.CENTAR,
     });
-    expect(coast).toBe(inland + 20);
+    expect(central).toBe(outskirts + 20);
   });
 
   it("rewards contactability (email + valid phone)", () => {
@@ -49,7 +49,7 @@ describe("scoreLead", () => {
   it("clamps the score to the 0–100 range", () => {
     const max = scoreLead({
       source: LeadSource.REFERRAL,
-      region: Region.BUDVA,
+      region: Region.CENTAR,
       phone: "+38269123456",
       email: "a@b.com",
       notes: "this is a sufficiently long note about the lead",

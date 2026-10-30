@@ -28,7 +28,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
-import { useT } from "@/lib/i18n/locale-context";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
 import {
   CommChannel,
   COMM_CHANNEL_LABELS,
@@ -51,6 +51,7 @@ interface Template {
 export default function CommunicationPage() {
   const qc = useQueryClient();
   const t = useT();
+  const e = useEnumLabel();
   const can = useAuth((s) => s.can);
   const canManageTemplates = can(
     Permission.COMMS_TEMPLATE_MANAGE,
@@ -291,20 +292,20 @@ export default function CommunicationPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Plus className="h-4 w-4" /> Create campaign
+                <Plus className="h-4 w-4" /> {t("commsPage.createCampaign")}
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>Campaign name</Label>
+                <Label>{t("commsPage.campaignName")}</Label>
                 <Input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Spring buyers outreach"
+                  placeholder={t("commsPage.campaignNamePlaceholder")}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Channel</Label>
+                <Label>{t("comms.channel")}</Label>
                 <Select
                   value={form.channel}
                   onValueChange={(v) =>
@@ -328,13 +329,13 @@ export default function CommunicationPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Template</Label>
+                <Label>{t("commsPage.template")}</Label>
                 <Select
                   value={form.templateId}
                   onValueChange={(v) => setForm({ ...form, templateId: v })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select template" />
+                    <SelectValue placeholder={t("commsPage.selectTemplate")} />
                   </SelectTrigger>
                   <SelectContent>
                     {channelTemplates.map((t) => (
@@ -346,7 +347,7 @@ export default function CommunicationPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Segment (optional)</Label>
+                <Label>{t("commsPage.segmentOptional")}</Label>
                 <Select
                   value={form.segment || "NONE"}
                   onValueChange={(v) =>
@@ -354,52 +355,54 @@ export default function CommunicationPage() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="All segments" />
+                    <SelectValue placeholder={t("commsPage.allSegments")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NONE">No segment filter</SelectItem>
+                    <SelectItem value="NONE">
+                      {t("commsPage.noSegmentFilter")}
+                    </SelectItem>
                     {Object.values(CustomerSegment).map((s) => (
                       <SelectItem key={s} value={s}>
-                        {s}
+                        {e("status", s)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>Customer IDs (optional, comma-separated)</Label>
+                <Label>{t("commsPage.customerIds")}</Label>
                 <Input
                   value={form.customerIds}
                   onChange={(e) =>
                     setForm({ ...form, customerIds: e.target.value })
                   }
-                  placeholder="uuid-1, uuid-2, …"
+                  placeholder={t("commsPage.customerIdsPlaceholder")}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Use segment or explicit customer IDs. If both are set,
-                  customer IDs take precedence.
+                  {t("commsPage.customerIdsHint")}
                 </p>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>Property ID (broadcast hint)</Label>
+                <Label>{t("commsPage.propertyIdBroadcast")}</Label>
                 <Input
                   value={form.propertyId}
                   onChange={(e) =>
                     setForm({ ...form, propertyId: e.target.value })
                   }
-                  placeholder="Property UUID to preview matched audience"
+                  placeholder={t("commsPage.propertyIdBroadcastPlaceholder")}
                 />
                 {broadcastHint.data && (
                   <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
                     <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     <div>
                       <p className="font-medium">
-                        {broadcastHint.data.matchCount} matched customers for
-                        property broadcast
+                        {t("commsPage.matchedCustomers", {
+                          n: broadcastHint.data.matchCount,
+                        })}
                       </p>
                       {broadcastHint.data.customers.length > 0 && (
                         <p className="mt-1 text-muted-foreground">
-                          Top matches:{" "}
+                          {t("commsPage.topMatches")}{" "}
                           {broadcastHint.data.customers
                             .slice(0, 5)
                             .map((c) => c.fullName)
@@ -408,8 +411,7 @@ export default function CommunicationPage() {
                         </p>
                       )}
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Publishing a property auto-dispatches a WhatsApp
-                        campaign to matched buyers.
+                        {t("commsPage.broadcastNote")}
                       </p>
                     </div>
                   </div>
@@ -422,7 +424,9 @@ export default function CommunicationPage() {
                   }
                   onClick={() => createCampaign.mutate()}
                 >
-                  {createCampaign.isPending ? "Creating…" : "Create campaign"}
+                  {createCampaign.isPending
+                    ? t("common.creating")
+                    : t("commsPage.createCampaign")}
                 </Button>
               </div>
             </CardContent>
@@ -432,12 +436,12 @@ export default function CommunicationPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Channel</TableHead>
-                  <TableHead>Audience</TableHead>
-                  <TableHead>Sent</TableHead>
-                  <TableHead>Delivered</TableHead>
-                  <TableHead>Clicked</TableHead>
+                  <TableHead>{t("common.name")}</TableHead>
+                  <TableHead>{t("comms.channel")}</TableHead>
+                  <TableHead>{t("comms.audience")}</TableHead>
+                  <TableHead>{t("comms.sent")}</TableHead>
+                  <TableHead>{t("comms.delivered")}</TableHead>
+                  <TableHead>{t("comms.clicked")}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -460,7 +464,8 @@ export default function CommunicationPage() {
                         disabled={dispatch.isPending || c.audienceSize === 0}
                         onClick={() => dispatch.mutate(c.id)}
                       >
-                        <Send className="mr-1 h-3.5 w-3.5" /> Dispatch
+                        <Send className="mr-1 h-3.5 w-3.5" />{" "}
+                        {t("comms.dispatch")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -471,7 +476,7 @@ export default function CommunicationPage() {
                       colSpan={7}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      No campaigns yet.
+                      {t("commsPage.noCampaigns")}
                     </TableCell>
                   </TableRow>
                 )}

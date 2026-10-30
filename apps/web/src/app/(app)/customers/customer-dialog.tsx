@@ -21,16 +21,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
 import {
   CustomerIntent,
   CustomerKind,
   CustomerSegment,
   FinancingType,
   ListingPurpose,
-  PricePeriod,
-  PRICE_PERIOD_SUFFIX,
   PropertyType,
   Region,
+  REGION_LABELS,
   Residency,
   type CustomerDto,
 } from "@reos/shared";
@@ -93,6 +93,8 @@ export function CustomerDialog({
   onOpenChange: (v: boolean) => void;
 }) {
   const qc = useQueryClient();
+  const t = useT();
+  const el = useEnumLabel();
   const isEdit = !!customer;
   const [form, setForm] = useState<FormState>(EMPTY);
 
@@ -188,19 +190,18 @@ export function CustomerDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? `Edit ${customer!.fullName}` : "New customer"}
+            {isEdit
+              ? t("customers.editCustomer", { name: customer!.fullName })
+              : t("customers.newCustomer")}
           </DialogTitle>
-          <DialogDescription>
-            Buyer/tenant requirements drive smart matching against the
-            portfolio.
-          </DialogDescription>
+          <DialogDescription>{t("customers.dialogDescription")}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2 sm:grid-cols-2">
           {!isEdit && (
             <>
               <div className="space-y-1.5">
-                <Label>Full name</Label>
+                <Label>{t("customers.fullName")}</Label>
                 <Input
                   value={form.fullName}
                   onChange={(e) =>
@@ -209,14 +210,14 @@ export function CustomerDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Phone</Label>
+                <Label>{t("common.phone")}</Label>
                 <Input
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Email</Label>
+                <Label>{t("common.email")}</Label>
                 <Input
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -233,17 +234,17 @@ export function CustomerDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Viber subscriber ID</Label>
+                <Label>{t("customers.viberId")}</Label>
                 <Input
                   value={form.viberId}
                   onChange={(e) =>
                     setForm({ ...form, viberId: e.target.value })
                   }
-                  placeholder="Received when the contact messages your Viber account"
+                  placeholder={t("customers.viberIdHint")}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Kind</Label>
+                <Label>{t("customers.kind")}</Label>
                 <Select
                   value={form.kind}
                   onValueChange={(v) =>
@@ -256,14 +257,14 @@ export function CustomerDialog({
                   <SelectContent>
                     {Object.values(CustomerKind).map((k) => (
                       <SelectItem key={k} value={k}>
-                        {k}
+                        {el("customerKind", k)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Intent</Label>
+                <Label>{t("customers.intent")}</Label>
                 <Select
                   value={form.intent}
                   onValueChange={(v) =>
@@ -276,7 +277,7 @@ export function CustomerDialog({
                   <SelectContent>
                     {Object.values(CustomerIntent).map((k) => (
                       <SelectItem key={k} value={k}>
-                        {k}
+                        {el("customerIntent", k)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -297,7 +298,7 @@ export function CustomerDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Viber subscriber ID</Label>
+                <Label>{t("customers.viberId")}</Label>
                 <Input
                   value={form.viberId}
                   onChange={(e) =>
@@ -308,7 +309,7 @@ export function CustomerDialog({
             </>
           )}
           <div className="space-y-1.5">
-            <Label>Segment</Label>
+            <Label>{t("customers.segment")}</Label>
             <Select
               value={form.segment}
               onValueChange={(v) =>
@@ -321,14 +322,14 @@ export function CustomerDialog({
               <SelectContent>
                 {Object.values(CustomerSegment).map((k) => (
                   <SelectItem key={k} value={k}>
-                    {k}
+                    {el("status", k)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Budget min (EUR)</Label>
+            <Label>{t("customers.budgetMin")}</Label>
             <Input
               type="number"
               value={form.budgetMin}
@@ -337,12 +338,10 @@ export function CustomerDialog({
           </div>
           <div className="space-y-1.5">
             <Label>
-              Budget max (EUR
               {form.kind === CustomerKind.TENANT ||
               form.preferredPurpose === ListingPurpose.RENT
-                ? PRICE_PERIOD_SUFFIX[PricePeriod.MONTHLY]
-                : ""}
-              )
+                ? t("customers.budgetMaxMonthly")
+                : t("customers.budgetMax")}
             </Label>
             <Input
               type="number"
@@ -354,7 +353,7 @@ export function CustomerDialog({
             form.preferredPurpose === ListingPurpose.RENT) && (
             <>
               <div className="space-y-1.5">
-                <Label>Move-in date</Label>
+                <Label>{t("customers.moveInDate")}</Label>
                 <Input
                   type="date"
                   value={form.moveInDate}
@@ -364,7 +363,7 @@ export function CustomerDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Lease duration (months)</Label>
+                <Label>{t("customers.leaseMonths")}</Label>
                 <Input
                   type="number"
                   value={form.leaseMonths}
@@ -374,7 +373,7 @@ export function CustomerDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Occupants</Label>
+                <Label>{t("customers.occupants")}</Label>
                 <Input
                   type="number"
                   value={form.occupants}
@@ -384,7 +383,7 @@ export function CustomerDialog({
                 />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>Pets allowed</Label>
+                <Label>{t("customers.petsAllowed")}</Label>
                 <button
                   type="button"
                   onClick={() =>
@@ -392,13 +391,13 @@ export function CustomerDialog({
                   }
                   className={`rounded-full border px-3 py-1 text-xs transition-colors ${form.petsAllowed ? "border-primary bg-primary text-primary-foreground" : "border-input hover:bg-accent"}`}
                 >
-                  {form.petsAllowed ? "Yes" : "No"}
+                  {form.petsAllowed ? t("customers.yes") : t("customers.no")}
                 </button>
               </div>
             </>
           )}
           <div className="space-y-1.5">
-            <Label>Preferred purpose</Label>
+            <Label>{t("customers.preferredPurpose")}</Label>
             <Select
               value={form.preferredPurpose || "ANY"}
               onValueChange={(v) =>
@@ -409,14 +408,18 @@ export function CustomerDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ANY">Auto (from kind)</SelectItem>
-                <SelectItem value={ListingPurpose.SALE}>Sale</SelectItem>
-                <SelectItem value={ListingPurpose.RENT}>Rent</SelectItem>
+                <SelectItem value="ANY">{t("customers.purposeAuto")}</SelectItem>
+                <SelectItem value={ListingPurpose.SALE}>
+                  {el("purpose", ListingPurpose.SALE)}
+                </SelectItem>
+                <SelectItem value={ListingPurpose.RENT}>
+                  {el("purpose", ListingPurpose.RENT)}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Property type</Label>
+            <Label>{t("customers.propertyType")}</Label>
             <Select
               value={form.propertyType || "ANY"}
               onValueChange={(v) =>
@@ -427,27 +430,27 @@ export function CustomerDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ANY">Any</SelectItem>
+                <SelectItem value="ANY">{t("customers.any")}</SelectItem>
                 {Object.values(PropertyType).map((k) => (
                   <SelectItem key={k} value={k}>
-                    {k}
+                    {el("propertyType", k)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Rooms</Label>
+            <Label>{t("customers.rooms")}</Label>
             <Input
               value={form.roomRequirement}
               onChange={(e) =>
                 setForm({ ...form, roomRequirement: e.target.value })
               }
-              placeholder="e.g. 2+1"
+              placeholder={t("customers.roomsPlaceholder")}
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Financing</Label>
+            <Label>{t("customers.financing")}</Label>
             <Select
               value={form.financing || "ANY"}
               onValueChange={(v) =>
@@ -458,16 +461,18 @@ export function CustomerDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ANY">Unspecified</SelectItem>
-                <SelectItem value={FinancingType.CASH}>Cash</SelectItem>
+                <SelectItem value="ANY">{t("customers.unspecified")}</SelectItem>
+                <SelectItem value={FinancingType.CASH}>
+                  {el("financing", FinancingType.CASH)}
+                </SelectItem>
                 <SelectItem value={FinancingType.MORTGAGE}>
-                  Mortgage / Credit
+                  {el("financing", FinancingType.MORTGAGE)}
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Residency</Label>
+            <Label>{t("customers.residency")}</Label>
             <Select
               value={form.residency || "ANY"}
               onValueChange={(v) =>
@@ -478,22 +483,26 @@ export function CustomerDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ANY">Unspecified</SelectItem>
-                <SelectItem value={Residency.CITIZEN}>Citizen</SelectItem>
-                <SelectItem value={Residency.FOREIGN}>Foreigner</SelectItem>
+                <SelectItem value="ANY">{t("customers.unspecified")}</SelectItem>
+                <SelectItem value={Residency.CITIZEN}>
+                  {el("residency", Residency.CITIZEN)}
+                </SelectItem>
+                <SelectItem value={Residency.FOREIGN}>
+                  {el("residency", Residency.FOREIGN)}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Notes</Label>
+            <Label>{t("common.notes")}</Label>
             <Input
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Internal notes…"
+              placeholder={t("customers.notesPlaceholder")}
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Preferred regions</Label>
+            <Label>{t("customers.preferredRegions")}</Label>
             <div className="flex flex-wrap gap-1.5">
               {Object.values(Region).map((r) => (
                 <button
@@ -502,7 +511,7 @@ export function CustomerDialog({
                   onClick={() => toggleRegion(r)}
                   className={`rounded-full border px-3 py-1 text-xs transition-colors ${form.preferredRegions.includes(r) ? "border-primary bg-primary text-primary-foreground" : "border-input hover:bg-accent"}`}
                 >
-                  {r}
+                  {REGION_LABELS[r]}
                 </button>
               ))}
             </div>
@@ -511,14 +520,14 @@ export function CustomerDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button disabled={save.isPending} onClick={() => save.mutate()}>
             {save.isPending
-              ? "Saving…"
+              ? t("common.saving")
               : isEdit
-                ? "Save changes"
-                : "Create customer"}
+                ? t("customers.saveChanges")
+                : t("customers.createCustomer")}
           </Button>
         </DialogFooter>
       </DialogContent>

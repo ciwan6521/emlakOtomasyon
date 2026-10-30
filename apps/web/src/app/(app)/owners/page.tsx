@@ -34,11 +34,13 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
 import { formatCurrency, formatDate, relativeTime } from "@/lib/utils";
 import {
   OwnerRating,
   Permission,
   PropertyStatus,
+  regionLabel,
   type OwnerDto,
   type Paginated,
 } from "@reos/shared";
@@ -50,14 +52,6 @@ const RATING_STARS: Record<OwnerRating, number> = {
   DIFFICULT: 2,
   PROBLEM: 1,
   BLACKLIST: 0,
-};
-const RATING_LABEL: Record<OwnerRating, string> = {
-  EXCELLENT: "Excellent",
-  GOOD: "Good",
-  AVERAGE: "Average",
-  DIFFICULT: "Difficult",
-  PROBLEM: "Problem",
-  BLACKLIST: "Blacklist",
 };
 
 type FormState = {
@@ -103,6 +97,8 @@ interface OwnerDetail extends OwnerDto {
 }
 
 export default function OwnersPage() {
+  const t = useT();
+  const el = useEnumLabel();
   const { can } = useAuth();
   const qc = useQueryClient();
   const [rating, setRating] = useState("ALL");
@@ -187,7 +183,7 @@ export default function OwnersPage() {
         action={
           canManage && (
             <Button onClick={() => openEditor(null)}>
-              <Plus className="mr-1.5 h-4 w-4" /> New owner
+              <Plus className="mr-1.5 h-4 w-4" /> {t("owners.newOwner")}
             </Button>
           )
         }
@@ -195,7 +191,7 @@ export default function OwnersPage() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Input
-          placeholder="Search name or phone…"
+          placeholder={t("owners.searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-xs"
@@ -205,10 +201,10 @@ export default function OwnersPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All ratings</SelectItem>
+            <SelectItem value="ALL">{t("owners.allRatings")}</SelectItem>
             {Object.values(OwnerRating).map((r) => (
               <SelectItem key={r} value={r}>
-                {RATING_LABEL[r]}
+                {el("ownerRating", r)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -219,13 +215,13 @@ export default function OwnersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Owner</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Rating</TableHead>
-              <TableHead className="text-right">Properties</TableHead>
-              <TableHead className="text-right">Active</TableHead>
-              <TableHead className="text-right">Sold</TableHead>
-              <TableHead className="text-right">Rented</TableHead>
+              <TableHead>{t("owners.owner")}</TableHead>
+              <TableHead>{t("common.phone")}</TableHead>
+              <TableHead>{t("owners.rating")}</TableHead>
+              <TableHead className="text-right">{t("owners.properties")}</TableHead>
+              <TableHead className="text-right">{t("owners.active")}</TableHead>
+              <TableHead className="text-right">{t("owners.sold")}</TableHead>
+              <TableHead className="text-right">{t("owners.rented")}</TableHead>
               {canManage && <TableHead className="w-12" />}
             </TableRow>
           </TableHeader>
@@ -278,7 +274,7 @@ export default function OwnersPage() {
                   colSpan={canManage ? 8 : 7}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading…
+                  {t("owners.loading")}
                 </TableCell>
               </TableRow>
             )}
@@ -288,7 +284,7 @@ export default function OwnersPage() {
                   colSpan={canManage ? 8 : 7}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No owners yet.
+                  {t("owners.noOwners")}
                 </TableCell>
               </TableRow>
             )}
@@ -301,7 +297,7 @@ export default function OwnersPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           {detail.isLoading && (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              Loading…
+              {t("owners.loading")}
             </p>
           )}
           {detail.data && (
@@ -319,7 +315,9 @@ export default function OwnersPage() {
               <div className="grid gap-4 sm:grid-cols-4">
                 <Card>
                   <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Properties</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("owners.properties")}
+                    </p>
                     <p className="text-lg font-semibold">
                       {detail.data.propertyCount}
                     </p>
@@ -327,7 +325,9 @@ export default function OwnersPage() {
                 </Card>
                 <Card>
                   <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Active</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("owners.active")}
+                    </p>
                     <p className="text-lg font-semibold">
                       {detail.data.activeListings}
                     </p>
@@ -335,7 +335,9 @@ export default function OwnersPage() {
                 </Card>
                 <Card>
                   <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Sold</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("owners.sold")}
+                    </p>
                     <p className="text-lg font-semibold">
                       {detail.data.soldCount}
                     </p>
@@ -343,7 +345,9 @@ export default function OwnersPage() {
                 </Card>
                 <Card>
                   <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Rented</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("owners.rented")}
+                    </p>
                     <p className="text-lg font-semibold">
                       {detail.data.rentedCount}
                     </p>
@@ -359,17 +363,17 @@ export default function OwnersPage() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Properties</CardTitle>
+                  <CardTitle className="text-sm">{t("owners.properties")}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Ref</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Region</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>{t("owners.ref")}</TableHead>
+                        <TableHead>{t("owners.title")}</TableHead>
+                        <TableHead>{t("owners.region")}</TableHead>
+                        <TableHead>{t("owners.price")}</TableHead>
+                        <TableHead>{t("common.status")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -382,7 +386,7 @@ export default function OwnersPage() {
                             {p.title}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {p.region}
+                            {regionLabel(p.region)}
                           </TableCell>
                           <TableCell>{formatCurrency(p.price)}</TableCell>
                           <TableCell>
@@ -396,7 +400,7 @@ export default function OwnersPage() {
                             colSpan={5}
                             className="py-6 text-center text-muted-foreground"
                           >
-                            No properties linked.
+                            {t("owners.noProperties")}
                           </TableCell>
                         </TableRow>
                       )}
@@ -408,7 +412,7 @@ export default function OwnersPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">
-                    Conversation timeline
+                    {t("owners.conversationTimeline")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -420,7 +424,7 @@ export default function OwnersPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="font-medium text-foreground">
-                            {c.actorName ?? "System"}
+                            {c.actorName ?? t("owners.system")}
                           </span>
                           <span>·</span>
                           <span>{c.channel}</span>
@@ -433,7 +437,7 @@ export default function OwnersPage() {
                   ))}
                   {detail.data.conversations.length === 0 && (
                     <p className="py-4 text-center text-sm text-muted-foreground">
-                      No conversations yet.
+                      {t("owners.noConversations")}
                     </p>
                   )}
                 </CardContent>
@@ -442,12 +446,12 @@ export default function OwnersPage() {
               {canManage && (
                 <div className="space-y-3 rounded-lg border p-4">
                   <p className="text-sm font-medium flex items-center gap-1.5">
-                    <MessageSquarePlus className="h-4 w-4" /> Add conversation
-                    note
+                    <MessageSquarePlus className="h-4 w-4" />{" "}
+                    {t("owners.addConversationNote")}
                   </p>
                   <div className="grid gap-3 sm:grid-cols-4">
                     <div className="space-y-1.5 sm:col-span-1">
-                      <Label>Channel</Label>
+                      <Label>{t("owners.channel")}</Label>
                       <Select
                         value={noteChannel}
                         onValueChange={setNoteChannel}
@@ -456,20 +460,20 @@ export default function OwnersPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="NOTE">Note</SelectItem>
+                          <SelectItem value="NOTE">{t("owners.channelNote")}</SelectItem>
                           <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
-                          <SelectItem value="PHONE">Phone</SelectItem>
-                          <SelectItem value="EMAIL">Email</SelectItem>
+                          <SelectItem value="PHONE">{t("common.phone")}</SelectItem>
+                          <SelectItem value="EMAIL">{t("common.email")}</SelectItem>
                           <SelectItem value="TELEGRAM">Telegram</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5 sm:col-span-3">
-                      <Label>Message</Label>
+                      <Label>{t("owners.message")}</Label>
                       <Input
                         value={noteMessage}
                         onChange={(e) => setNoteMessage(e.target.value)}
-                        placeholder="Call summary, agreement, follow-up…"
+                        placeholder={t("owners.messagePlaceholder")}
                         onKeyDown={(e) =>
                           e.key === "Enter" &&
                           noteMessage.trim() &&
@@ -483,7 +487,7 @@ export default function OwnersPage() {
                     disabled={!noteMessage.trim() || addNote.isPending}
                     onClick={() => addNote.mutate()}
                   >
-                    {addNote.isPending ? "Saving…" : "Add note"}
+                    {addNote.isPending ? t("common.saving") : t("owners.addNote")}
                   </Button>
                 </div>
               )}
@@ -497,7 +501,8 @@ export default function OwnersPage() {
                       openEditor(detail.data);
                     }}
                   >
-                    <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit profile
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" />{" "}
+                    {t("owners.editProfile")}
                   </Button>
                 )}
               </DialogFooter>
@@ -512,27 +517,27 @@ export default function OwnersPage() {
           <DialogHeader>
             <DialogTitle>
               {editing && editing.id !== "new"
-                ? `Edit ${editing.name}`
-                : "New owner"}
+                ? t("owners.editOwner", { name: editing.name })
+                : t("owners.newOwner")}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Name</Label>
+              <Label>{t("common.name")}</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Phone</Label>
+              <Label>{t("common.phone")}</Label>
               <Input
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Email</Label>
+              <Label>{t("common.email")}</Label>
               <Input
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -553,7 +558,7 @@ export default function OwnersPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Rating</Label>
+              <Label>{t("owners.rating")}</Label>
               <Select
                 value={form.rating}
                 onValueChange={(v) =>
@@ -566,21 +571,21 @@ export default function OwnersPage() {
                 <SelectContent>
                   {Object.values(OwnerRating).map((r) => (
                     <SelectItem key={r} value={r}>
-                      {RATING_LABEL[r]}
+                      {el("ownerRating", r)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Address</Label>
+              <Label>{t("owners.address")}</Label>
               <Input
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Notes</Label>
+              <Label>{t("common.notes")}</Label>
               <Input
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -589,13 +594,13 @@ export default function OwnersPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditing(null)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={save.isPending || !form.name || !form.phone}
               onClick={() => save.mutate()}
             >
-              {save.isPending ? "Saving…" : "Save owner"}
+              {save.isPending ? t("common.saving") : t("owners.saveOwner")}
             </Button>
           </DialogFooter>
         </DialogContent>

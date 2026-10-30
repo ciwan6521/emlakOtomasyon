@@ -13,6 +13,8 @@ import {
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { QueueService } from "../../common/queue/queue.service";
 import { SocialAdapter } from "../integrations/social.adapter";
+import { buildListingCaption } from "./domain/caption";
+import { urlKey } from "./domain/social-links";
 
 type SocialJob =
   | { companyId: string; propertyId: string }
@@ -57,7 +59,13 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
   private async autopost(companyId: string, propertyId: string): Promise<void> {
     const property = await this.prisma.property.findFirst({
       where: { id: propertyId, companyId },
-      include: { media: { take: 4, orderBy: { position: "asc" } } },
+      include: {
+        media: {
+          where: { type: "PHOTO" },
+          take: 10,
+          orderBy: [{ isCover: "desc" }, { position: "asc" }],
+        },
+      },
     });
     if (!property) return;
 
@@ -86,7 +94,7 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const caption = `${property.title}\n${property.rooms} · ${property.sizeM2} m² · ${property.region}\n${Number(property.price).toLocaleString("en-US")} ${property.currency}\nRef: ${property.reference}`;
+    const caption = buildListingCaption(property);
     const mediaUrls = property.media.map((m) => m.url);
     const channels = [SocialChannel.INSTAGRAM, SocialChannel.FACEBOOK];
 
@@ -186,7 +194,7 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
     });
     if (!original) return;
 
-    const caption = `PRICE UPDATE\n\n${property.title}\n${Number(property.price).toLocaleString("en-US")} ${property.currency}\n\n${original.caption}`;
+    const caption = buildListingCaption(property, { priceUpdate: true });
     await this.prisma.socialPost.create({
       data: {
         companyId,
@@ -224,15 +232,26 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
 
         let ok = true;
         const externalRefs: Record<string, string> = {};
+        const errors: string[] = [];
         for (const channel of post.channels as SocialChannel[]) {
           const res = await this.social.publish({
             channel,
             caption: post.caption,
             mediaUrls: post.mediaUrls,
           });
-          if (res.ok && res.externalId) externalRefs[channel] = res.externalId;
-          else ok = false;
+          if (res.ok && res.externalId) {
+            externalRefs[channel] = res.externalId;
+            if (res.permalink) externalRefs[urlKey(channel)] = res.permalink;
+          } else {
+            ok = false;
+            errors.push(`${channel}: ${res.error ?? "unknown error"}`);
+          }
         }
+
+        if (!ok)
+          this.logger.warn(
+            `Social post ${post.id} failed — ${errors.join("; ")}`,
+          );
 
         await this.prisma.socialPost.update({
           where: { id: post.id },

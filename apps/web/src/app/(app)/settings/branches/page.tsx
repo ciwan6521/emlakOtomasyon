@@ -32,7 +32,13 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
-import { Permission, Region, type BranchDto } from "@reos/shared";
+import { useT } from "@/lib/i18n/locale-context";
+import {
+  Permission,
+  Region,
+  REGION_LABELS,
+  type BranchDto,
+} from "@reos/shared";
 
 type FormState = {
   id: string | null;
@@ -43,13 +49,14 @@ type FormState = {
 const EMPTY: FormState = {
   id: null,
   name: "",
-  region: Region.BUDVA,
+  region: Region.CENTAR,
   address: "",
 };
 
 export default function BranchesPage() {
   const { can } = useAuth();
   const qc = useQueryClient();
+  const t = useT();
   const [form, setForm] = useState<FormState | null>(null);
   const canManage = can(Permission.BRANCH_MANAGE);
 
@@ -88,7 +95,7 @@ export default function BranchesPage() {
         action={
           canManage && (
             <Button onClick={() => setForm(EMPTY)}>
-              <Plus className="mr-1.5 h-4 w-4" /> New branch
+              <Plus className="mr-1.5 h-4 w-4" /> {t("branches.new")}
             </Button>
           )
         }
@@ -98,11 +105,13 @@ export default function BranchesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Region</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead className="text-right">Staff</TableHead>
-              <TableHead className="text-right">Active listings</TableHead>
+              <TableHead>{t("common.name")}</TableHead>
+              <TableHead>{t("branches.region")}</TableHead>
+              <TableHead>{t("branches.address")}</TableHead>
+              <TableHead className="text-right">{t("branches.staff")}</TableHead>
+              <TableHead className="text-right">
+                {t("branches.activeListings")}
+              </TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -122,7 +131,7 @@ export default function BranchesPage() {
                 }
               >
                 <TableCell className="font-medium">{b.name}</TableCell>
-                <TableCell>{b.region.replace(/_/g, " ")}</TableCell>
+                <TableCell>{REGION_LABELS[b.region]}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {b.address ?? "—"}
                 </TableCell>
@@ -135,7 +144,9 @@ export default function BranchesPage() {
                       variant="ghost"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm(`Delete branch "${b.name}"?`))
+                        if (
+                          confirm(t("branches.confirmDelete", { name: b.name }))
+                        )
                           remove.mutate(b.id);
                       }}
                     >
@@ -151,7 +162,7 @@ export default function BranchesPage() {
                   colSpan={6}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading…
+                  {t("branches.loading")}
                 </TableCell>
               </TableRow>
             )}
@@ -161,7 +172,7 @@ export default function BranchesPage() {
                   colSpan={6}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No branches yet.
+                  {t("branches.empty")}
                 </TableCell>
               </TableRow>
             )}
@@ -172,19 +183,21 @@ export default function BranchesPage() {
       <Dialog open={!!form} onOpenChange={(v) => !v && setForm(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{form?.id ? "Edit branch" : "New branch"}</DialogTitle>
+            <DialogTitle>
+              {form?.id ? t("branches.edit") : t("branches.new")}
+            </DialogTitle>
           </DialogHeader>
           {form && (
             <div className="grid gap-4 py-2">
               <div className="space-y-1.5">
-                <Label>Name</Label>
+                <Label>{t("common.name")}</Label>
                 <Input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Region</Label>
+                <Label>{t("branches.region")}</Label>
                 <Select
                   value={form.region}
                   onValueChange={(v) =>
@@ -197,14 +210,14 @@ export default function BranchesPage() {
                   <SelectContent>
                     {Object.values(Region).map((r) => (
                       <SelectItem key={r} value={r}>
-                        {r.replace(/_/g, " ")}
+                        {REGION_LABELS[r]}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Address</Label>
+                <Label>{t("branches.address")}</Label>
                 <Input
                   value={form.address}
                   onChange={(e) =>
@@ -216,13 +229,13 @@ export default function BranchesPage() {
           )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setForm(null)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={save.isPending || !form?.name}
               onClick={() => save.mutate()}
             >
-              {save.isPending ? "Saving…" : "Save branch"}
+              {save.isPending ? t("common.saving") : t("branches.save")}
             </Button>
           </DialogFooter>
         </DialogContent>

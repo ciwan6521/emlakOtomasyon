@@ -28,7 +28,9 @@ import {
 
 import { api } from "@/lib/api";
 
-import { CALL_RESULT_LABELS, CallResult, OwnerRating } from "@reos/shared";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
+
+import { CallResult, OwnerRating } from "@reos/shared";
 
 interface QueueItem {
   leadId: string;
@@ -52,16 +54,6 @@ interface QueueItem {
   listingPhotoUrl?: string | null;
 }
 
-const OWNER_RATING_LABEL: Record<OwnerRating, string> = {
-  EXCELLENT: "Excellent",
-  GOOD: "Good",
-  AVERAGE: "Average",
-
-  DIFFICULT: "Difficult",
-  PROBLEM: "Problem",
-  BLACKLIST: "Blacklist",
-};
-
 function phoneDigits(phone: string): string {
   return phone.replace(/\D/g, "");
 }
@@ -77,6 +69,10 @@ function toDatetimeLocal(iso: string | null | undefined): string {
 }
 
 export default function CallCenterPage() {
+  const t = useT();
+
+  const e = useEnumLabel();
+
   const qc = useQueryClient();
 
   const [active, setActive] = useState<QueueItem | null>(null);
@@ -149,7 +145,7 @@ export default function CallCenterPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Outbound queue</CardTitle>
+            <CardTitle>{t("callCenter.queueTitle")}</CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-2">
@@ -183,7 +179,7 @@ export default function CallCenterPage() {
 
             {queue.data?.length === 0 && (
               <p className="py-10 text-center text-sm text-muted-foreground">
-                Queue is empty. Great work!
+                {t("callCenter.queueEmpty")}
               </p>
             )}
           </CardContent>
@@ -191,7 +187,7 @@ export default function CallCenterPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Call result</CardTitle>
+            <CardTitle>{t("callCenter.resultTitle")}</CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-4">
@@ -207,7 +203,8 @@ export default function CallCenterPage() {
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Button size="sm" variant="outline" asChild>
                       <a href={`tel:${active.phone}`}>
-                        <Phone className="mr-1.5 h-3.5 w-3.5" /> Call
+                        <Phone className="mr-1.5 h-3.5 w-3.5" />{" "}
+                        {t("callCenter.call")}
                       </a>
                     </Button>
 
@@ -239,27 +236,27 @@ export default function CallCenterPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>Notes</Label>
+                  <Label>{t("common.notes")}</Label>
 
                   <Input
                     value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Structured call note…"
+                    onChange={(ev) => setNotes(ev.target.value)}
+                    placeholder={t("callCenter.notesPlaceholder")}
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>Callback (follow-up)</Label>
+                  <Label>{t("callCenter.followUp")}</Label>
 
                   <Input
                     type="datetime-local"
                     value={followUpAt}
-                    onChange={(e) => setFollowUpAt(e.target.value)}
+                    onChange={(ev) => setFollowUpAt(ev.target.value)}
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>Owner rating</Label>
+                  <Label>{t("callCenter.ownerRating")}</Label>
 
                   <Select
                     value={ownerRating || "NONE"}
@@ -268,7 +265,7 @@ export default function CallCenterPage() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Optional" />
+                      <SelectValue placeholder={t("common.optional")} />
                     </SelectTrigger>
 
                     <SelectContent>
@@ -276,7 +273,7 @@ export default function CallCenterPage() {
 
                       {Object.values(OwnerRating).map((r) => (
                         <SelectItem key={r} value={r}>
-                          {OWNER_RATING_LABEL[r]}
+                          {e("ownerRating", r)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -294,7 +291,7 @@ export default function CallCenterPage() {
                         logResult.mutate({ leadId: active.leadId, result: r })
                       }
                     >
-                      {CALL_RESULT_LABELS[r]}
+                      {e("callResult", r)}
                     </Button>
                   ))}
                 </div>
@@ -302,7 +299,7 @@ export default function CallCenterPage() {
             ) : (
               <div className="flex flex-col items-center justify-center py-10 text-center text-sm text-muted-foreground">
                 <PhoneCall className="mb-2 h-6 w-6" />
-                Select a lead from the queue to log a call.
+                {t("callCenter.selectLeadHint")}
               </div>
             )}
           </CardContent>

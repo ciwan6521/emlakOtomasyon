@@ -12,6 +12,7 @@ import {
   parseListingQuery,
   PropertyStatus,
   QueueName,
+  regionLabel,
   SocialChannel,
   SocialLink,
 } from "@reos/shared";
@@ -20,6 +21,7 @@ import { QueueService } from "../../common/queue/queue.service";
 import { TenantStore } from "../../common/tenant/tenant-context";
 import { CallAssistSearchDto, CallAssistSendDto } from "./dto";
 import { Filters, rankProperty, toFilters } from "./domain/relevance";
+import { socialPostUrl } from "../social/domain/social-links";
 
 const DEFAULT_LIMIT = 18;
 
@@ -240,7 +242,7 @@ export class CallAssistService {
       const links = map.get(post.propertyId) ?? [];
       for (const channel of post.channels as SocialChannel[]) {
         if (links.some((l) => l.channel === channel)) continue;
-        const url = buildSocialUrl(channel, refs[channel]);
+        const url = socialPostUrl(refs, channel);
         if (url) links.push({ channel, url });
       }
       map.set(post.propertyId, links);
@@ -265,18 +267,4 @@ export class CallAssistService {
   }
 }
 
-function buildSocialUrl(
-  channel: SocialChannel,
-  externalId?: string,
-): string | null {
-  if (!externalId) return null;
-  const id = externalId.replace(/^sim_[A-Z]+_/, "");
-  if (channel === SocialChannel.INSTAGRAM)
-    return `https://www.instagram.com/p/${id}/`;
-  if (channel === SocialChannel.FACEBOOK)
-    return `https://www.facebook.com/${id}`;
-  return null;
-}
-
-const cap = (s: string) =>
-  s.charAt(0) + s.slice(1).toLowerCase().replace(/_/g, " ");
+const cap = (s: string) => regionLabel(s) || s;

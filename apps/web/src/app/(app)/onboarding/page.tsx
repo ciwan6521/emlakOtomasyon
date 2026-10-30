@@ -8,7 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
-import { OnboardingDecision, OnboardingStatus } from "@reos/shared";
+import { useT } from "@/lib/i18n/locale-context";
+import type { MessageKey } from "@/lib/i18n/messages";
+import {
+  OnboardingDecision,
+  OnboardingStatus,
+  regionLabel,
+} from "@reos/shared";
 
 interface Session {
   id: string;
@@ -24,12 +30,21 @@ interface Session {
   submittedAt: string | null;
 }
 
-const MODERATION_TABS = [
-  { value: OnboardingStatus.SUBMITTED, label: "Pending" },
-  { value: OnboardingStatus.CHANGES_REQUESTED, label: "Revision" },
-  { value: OnboardingStatus.MISSING_INFO, label: "Missing info" },
-  { value: OnboardingStatus.READY_TO_PUBLISH, label: "Ready to publish" },
-] as const;
+const MODERATION_TABS: { value: OnboardingStatus; labelKey: MessageKey }[] = [
+  { value: OnboardingStatus.SUBMITTED, labelKey: "onboarding.tabPending" },
+  {
+    value: OnboardingStatus.CHANGES_REQUESTED,
+    labelKey: "onboarding.tabRevision",
+  },
+  {
+    value: OnboardingStatus.MISSING_INFO,
+    labelKey: "onboarding.tabMissingInfo",
+  },
+  {
+    value: OnboardingStatus.READY_TO_PUBLISH,
+    labelKey: "onboarding.tabReadyToPublish",
+  },
+];
 
 function SessionList({
   sessions,
@@ -38,6 +53,7 @@ function SessionList({
   sessions: Session[] | undefined;
   onReview: (args: { id: string; decision: OnboardingDecision }) => void;
 }) {
+  const t = useT();
   return (
     <div className="space-y-3">
       {sessions?.map((s) => (
@@ -46,13 +62,16 @@ function SessionList({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className="font-medium">
-                  {s.payload?.title ?? s.ownerName ?? "Untitled"}
+                  {s.payload?.title ?? s.ownerName ?? t("onboarding.untitled")}
                 </p>
                 <StatusBadge value={s.status} />
               </div>
               <p className="text-sm text-muted-foreground">
-                {s.ownerName} · {s.ownerPhone} · {s.payload?.region} ·{" "}
-                {s.payload?.mediaUrls?.length ?? 0} media
+                {s.ownerName} · {s.ownerPhone} ·{" "}
+                {regionLabel(s.payload?.region as string | undefined)} ·{" "}
+                {t("onboarding.mediaCount", {
+                  n: s.payload?.mediaUrls?.length ?? 0,
+                })}
               </p>
             </div>
             {s.status === OnboardingStatus.SUBMITTED && (
@@ -67,7 +86,7 @@ function SessionList({
                     })
                   }
                 >
-                  Request changes
+                  {t("onboarding.requestChanges")}
                 </Button>
                 <Button
                   size="sm"
@@ -76,7 +95,7 @@ function SessionList({
                     onReview({ id: s.id, decision: OnboardingDecision.REJECT })
                   }
                 >
-                  Reject
+                  {t("onboarding.reject")}
                 </Button>
                 <Button
                   size="sm"
@@ -84,7 +103,7 @@ function SessionList({
                     onReview({ id: s.id, decision: OnboardingDecision.APPROVE })
                   }
                 >
-                  Approve
+                  {t("onboarding.approve")}
                 </Button>
               </div>
             )}
@@ -93,7 +112,7 @@ function SessionList({
       ))}
       {(!sessions || sessions.length === 0) && (
         <p className="py-10 text-center text-sm text-muted-foreground">
-          No submissions in this queue.
+          {t("onboarding.empty")}
         </p>
       )}
     </div>
@@ -101,6 +120,7 @@ function SessionList({
 }
 
 export default function OnboardingPage() {
+  const t = useT();
   const qc = useQueryClient();
   const [status, setStatus] = useState<string>(OnboardingStatus.SUBMITTED);
 
@@ -133,7 +153,7 @@ export default function OnboardingPage() {
         <TabsList className="mb-4">
           {MODERATION_TABS.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
-              {tab.label}
+              {t(tab.labelKey)}
             </TabsTrigger>
           ))}
         </TabsList>

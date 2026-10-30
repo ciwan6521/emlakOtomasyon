@@ -8,6 +8,8 @@ import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n/locale-context";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import {
   Activity,
@@ -17,16 +19,30 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
-import type { ReportRange, ReportSummary } from "@reos/shared";
+import {
+  Locale,
+  regionLabel,
+  type ReportRange,
+  type ReportSummary,
+} from "@reos/shared";
 
-const RANGES: { id: ReportRange; label: string }[] = [
-  { id: "daily", label: "Daily" },
-  { id: "weekly", label: "Weekly" },
-  { id: "monthly", label: "Monthly" },
-  { id: "yearly", label: "Yearly" },
+const RANGES: { id: ReportRange; labelKey: MessageKey }[] = [
+  { id: "daily", labelKey: "reports.daily" },
+  { id: "weekly", labelKey: "reports.weekly" },
+  { id: "monthly", labelKey: "reports.monthly" },
+  { id: "yearly", labelKey: "reports.yearly" },
 ];
 
+const DATE_LOCALE: Record<Locale, string> = {
+  [Locale.EN]: "en",
+  [Locale.ME]: "sr-Latn",
+  [Locale.TR]: "tr",
+  [Locale.RU]: "ru",
+};
+
 export default function ReportsPage() {
+  const { t, locale } = useLocale();
+  const dateLocale = DATE_LOCALE[locale] ?? "en";
   const [range, setRange] = useState<ReportRange>("monthly");
   const { data, isLoading } = useQuery({
     queryKey: ["reports", range],
@@ -48,58 +64,58 @@ export default function ReportsPage() {
             variant={range === r.id ? "default" : "outline"}
             onClick={() => setRange(r.id)}
           >
-            {r.label}
+            {t(r.labelKey)}
           </Button>
         ))}
       </div>
 
       {isLoading || !data ? (
-        <p className="text-sm text-muted-foreground">Loading report…</p>
+        <p className="text-sm text-muted-foreground">{t("reports.loading")}</p>
       ) : (
         <>
           <p className="mb-4 text-xs text-muted-foreground">
-            {new Date(data.from).toLocaleDateString()} →{" "}
-            {new Date(data.to).toLocaleDateString()}
+            {new Date(data.from).toLocaleDateString(dateLocale)} →{" "}
+            {new Date(data.to).toLocaleDateString(dateLocale)}
           </p>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              label="New leads"
+              label={t("reports.newLeads")}
               value={formatNumber(data.newLeads)}
               icon={Target}
               accent="primary"
             />
             <StatCard
-              label="Calls made"
+              label={t("reports.callsMade")}
               value={formatNumber(data.callsMade)}
               icon={PhoneCall}
               accent="primary"
             />
             <StatCard
-              label="New listings"
+              label={t("reports.newListings")}
               value={formatNumber(data.newListings)}
               icon={Building2}
               accent="primary"
             />
             <StatCard
-              label="Conversion"
+              label={t("reports.conversion")}
               value={`${data.conversionRate}%`}
               icon={TrendingUp}
               accent="success"
             />
             <StatCard
-              label="Sold"
+              label={t("reports.sold")}
               value={formatNumber(data.sold)}
               icon={KeyRound}
               accent="success"
             />
             <StatCard
-              label="Rented"
+              label={t("reports.rented")}
               value={formatNumber(data.rented)}
               icon={Activity}
               accent="success"
             />
             <StatCard
-              label="Revenue"
+              label={t("reports.revenue")}
               value={formatCurrency(data.revenue)}
               icon={TrendingUp}
               accent="success"
@@ -110,7 +126,8 @@ export default function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-warning" /> Top agents — deals
+                  <Trophy className="h-4 w-4 text-warning" />{" "}
+                  {t("reports.topAgentsDeals")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -128,14 +145,17 @@ export default function ReportsPage() {
                   </div>
                 ))}
                 {data.topAgentsByDeals.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No data.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("reports.noData")}
+                  </p>
                 )}
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-primary" /> Top agents — leads
+                  <Target className="h-4 w-4 text-primary" />{" "}
+                  {t("reports.topAgentsLeads")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -148,19 +168,22 @@ export default function ReportsPage() {
                       {i + 1}. {a.agentName}
                     </span>
                     <span className="text-muted-foreground">
-                      {a.value} leads
+                      {t("reports.leadsCount", { n: a.value })}
                     </span>
                   </div>
                 ))}
                 {data.topAgentsByLeads.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No data.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("reports.noData")}
+                  </p>
                 )}
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-primary" /> Top regions
+                  <Building2 className="h-4 w-4 text-primary" />{" "}
+                  {t("reports.topRegions")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -170,15 +193,20 @@ export default function ReportsPage() {
                     className="flex items-center justify-between text-sm"
                   >
                     <span className="truncate">
-                      {r.region.replace(/_/g, " ")}
+                      {regionLabel(r.region)}
                     </span>
                     <span className="text-muted-foreground">
-                      {r.sold} sold · {r.activeListings} active
+                      {t("reports.soldActive", {
+                        sold: r.sold,
+                        active: r.activeListings,
+                      })}
                     </span>
                   </div>
                 ))}
                 {data.topRegions.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No data.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("reports.noData")}
+                  </p>
                 )}
               </CardContent>
             </Card>

@@ -7,8 +7,9 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
+import { useT } from "@/lib/i18n/locale-context";
 import { formatCurrency } from "@/lib/utils";
-import type { CustomerDto, Paginated } from "@reos/shared";
+import { regionLabel, type CustomerDto, type Paginated } from "@reos/shared";
 
 interface MatchRow {
   id: string;
@@ -25,6 +26,7 @@ interface MatchRow {
 }
 
 export default function MatchingPage() {
+  const t = useT();
   const [selected, setSelected] = useState<string | null>(null);
 
   const customers = useQuery({
@@ -57,7 +59,7 @@ export default function MatchingPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Customers</CardTitle>
+            <CardTitle>{t("matching.customers")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
             {customers.data?.data.map((c, i) => {
@@ -75,7 +77,9 @@ export default function MatchingPage() {
                     ) : (
                       <>
                         <Home className="h-3 w-3" />
-                        {count} suitable {count === 1 ? "home" : "homes"}
+                        {count === 1
+                          ? t("matching.suitableHomeOne", { n: count })
+                          : t("matching.suitableHomeMany", { n: count })}
                       </>
                     )}
                   </span>
@@ -84,7 +88,7 @@ export default function MatchingPage() {
             })}
             {customers.data?.data.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                No customers yet.
+                {t("matching.noCustomers")}
               </p>
             )}
           </CardContent>
@@ -93,18 +97,19 @@ export default function MatchingPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" /> Matching properties
+              <Sparkles className="h-4 w-4 text-primary" />{" "}
+              {t("matching.matchingProperties")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {!selected && (
               <p className="py-10 text-center text-sm text-muted-foreground">
-                Select a customer to see matched listings.
+                {t("matching.selectCustomer")}
               </p>
             )}
             {selected && matches.data?.length === 0 && (
               <p className="py-10 text-center text-sm text-muted-foreground">
-                No matches above threshold.
+                {t("matching.noMatches")}
               </p>
             )}
             <div className="space-y-2">
@@ -119,7 +124,8 @@ export default function MatchingPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">{m.property?.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {m.property?.region} · {m.property?.rooms} ·{" "}
+                      {regionLabel(m.property?.region)} · {m.property?.rooms}{" "}
+                      ·{" "}
                       {m.property?.reference}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1">

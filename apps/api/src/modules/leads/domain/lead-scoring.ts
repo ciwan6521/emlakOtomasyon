@@ -12,10 +12,18 @@ const SOURCE_WEIGHT: Record<LeadSource, number> = {
   [LeadSource.MANUAL]: 10,
 };
 
+/**
+ * Districts with the highest demand and price per m² in Podgorica. A lead
+ * anchored to one of them is worth more time than one on the outskirts.
+ */
 const PRIME_REGIONS = new Set<Region>([
-  Region.BUDVA,
-  Region.KOTOR,
-  Region.TIVAT,
+  Region.CENTAR,
+  Region.PREKO_MORACE,
+  Region.CITY_KVART,
+  Region.NOVA_VAROS,
+  Region.GORICA,
+  Region.LJUBOVIC,
+  Region.KRUSEVAC,
 ]);
 
 export interface ScorableLead {

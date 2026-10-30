@@ -79,7 +79,9 @@ export default function LoginPage() {
               {t("login.tagline")}
             </p>
           </div>
-          <p className="text-xs text-primary-foreground/60">Adriatic Estates</p>
+          <p className="text-xs text-primary-foreground/60">
+            Podgorica · Montenegro
+          </p>
         </div>
 
         <div className="p-8 md:p-10">

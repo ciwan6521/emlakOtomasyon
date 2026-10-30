@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/locale-context";
 
 export default function AppError({
   error,
@@ -11,6 +12,7 @@ export default function AppError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error(error);
@@ -22,12 +24,12 @@ export default function AppError({
         <AlertTriangle className="h-6 w-6" />
       </div>
       <div>
-        <h2 className="text-lg font-semibold">This section failed to load</h2>
+        <h2 className="text-lg font-semibold">{t("errors.sectionTitle")}</h2>
         <p className="mt-1 max-w-md text-sm text-muted-foreground">
-          {error.message || "An unexpected error occurred."}
+          {error.message || t("errors.unexpected")}
         </p>
       </div>
-      <Button onClick={reset}>Retry</Button>
+      <Button onClick={reset}>{t("common.retry")}</Button>
     </div>
   );
 }

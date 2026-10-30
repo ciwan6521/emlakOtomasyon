@@ -6,18 +6,20 @@ import { ExportCsvButton } from "@/components/export-csv-button";
 import { Card } from "@/components/ui/card";
 import { KanbanBoard, KanbanCard, KanbanColumn } from "@/components/kanban";
 import { api } from "@/lib/api";
+import { useEnumLabel } from "@/lib/i18n/locale-context";
 import { formatCurrency } from "@/lib/utils";
 import { DealStage, type DealDto } from "@reos/shared";
 
-const STAGES: { key: DealStage; title: string }[] = [
-  { key: DealStage.LEAD, title: "Lead" },
-  { key: DealStage.QUALIFIED, title: "Qualified" },
-  { key: DealStage.OWNER_ACCEPTED, title: "Owner Accepted" },
-  { key: DealStage.LISTING_CREATED, title: "Listing Created" },
-  { key: DealStage.PUBLISHED, title: "Published" },
-  { key: DealStage.BUYER_INTERESTED, title: "Buyer Interested" },
-  { key: DealStage.OFFER, title: "Offer" },
-  { key: DealStage.DEAL_CLOSED, title: "Closed" },
+// Column titles are resolved at render time via e("status", key).
+const STAGES: { key: DealStage }[] = [
+  { key: DealStage.LEAD },
+  { key: DealStage.QUALIFIED },
+  { key: DealStage.OWNER_ACCEPTED },
+  { key: DealStage.LISTING_CREATED },
+  { key: DealStage.PUBLISHED },
+  { key: DealStage.BUYER_INTERESTED },
+  { key: DealStage.OFFER },
+  { key: DealStage.DEAL_CLOSED },
 ];
 
 function DealCardBody({ deal }: { deal: DealDto }) {
@@ -33,6 +35,7 @@ function DealCardBody({ deal }: { deal: DealDto }) {
 }
 
 export default function PipelinePage() {
+  const e = useEnumLabel();
   const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ["pipeline"],
@@ -93,7 +96,9 @@ export default function PipelinePage() {
             return (
               <div key={stage.key} className="w-64 shrink-0">
                 <div className="mb-2 flex items-center justify-between px-1">
-                  <h3 className="text-sm font-semibold">{stage.title}</h3>
+                  <h3 className="text-sm font-semibold">
+                    {e("status", stage.key)}
+                  </h3>
                   <span className="text-xs text-muted-foreground">
                     {deals.length}
                   </span>

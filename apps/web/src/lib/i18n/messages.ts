@@ -1,6 +1,7 @@
 import { Locale } from "@reos/shared";
+import { packs } from "./packs";
 
-const en = {
+const coreEn = {
   "nav.dashboard": "Dashboard",
   "nav.leads": "Leads",
   "nav.callCenter": "Call Center",
@@ -192,11 +193,10 @@ const en = {
   "comms.noTemplates": "No templates yet. Create one to start a campaign.",
 } as const;
 
-export type MessageKey = keyof typeof en;
+type CoreKey = keyof typeof coreEn;
+type CorePack = Record<CoreKey, string>;
 
-type Pack = Record<MessageKey, string>;
-
-const me: Pack = {
+const coreMe: CorePack = {
   "nav.dashboard": "Kontrolna tabla",
   "nav.leads": "Leadovi",
   "nav.callCenter": "Call centar",
@@ -388,7 +388,7 @@ const me: Pack = {
   "comms.noTemplates": "Još nema šablona. Kreirajte jedan da pokrenete kampanju.",
 };
 
-const tr: Pack = {
+const coreTr: CorePack = {
   "nav.dashboard": "Panel",
   "nav.leads": "Potansiyel müşteriler",
   "nav.callCenter": "Çağrı merkezi",
@@ -581,7 +581,7 @@ const tr: Pack = {
     "Henüz şablon yok. Kampanya başlatmak için bir tane oluşturun.",
 };
 
-const ru: Pack = {
+const coreRu: CorePack = {
   "nav.dashboard": "Панель",
   "nav.leads": "Лиды",
   "nav.callCenter": "Колл-центр",
@@ -774,6 +774,28 @@ const ru: Pack = {
   "comms.noTemplates":
     "Шаблонов пока нет. Создайте один, чтобы запустить кампанию.",
 };
+
+// Feature packs (./packs/*) are merged on top of the core strings. Each pack
+// is typed so every locale carries the full key set.
+const en = Object.assign(
+  {},
+  coreEn,
+  ...packs.map((p) => p.en),
+) as typeof coreEn & UnionToIntersection<(typeof packs)[number]["en"]>;
+
+export type MessageKey = keyof typeof en;
+
+type Pack = Record<MessageKey, string>;
+
+type UnionToIntersection<U> = (
+  U extends unknown ? (k: U) => void : never
+) extends (k: infer I) => void
+  ? I
+  : never;
+
+const me: Pack = Object.assign({}, coreMe, ...packs.map((p) => p.me));
+const tr: Pack = Object.assign({}, coreTr, ...packs.map((p) => p.tr));
+const ru: Pack = Object.assign({}, coreRu, ...packs.map((p) => p.ru));
 
 export const messages: Record<Locale, Pack> = {
   [Locale.EN]: en,

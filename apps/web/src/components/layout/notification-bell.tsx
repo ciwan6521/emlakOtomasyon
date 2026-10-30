@@ -11,17 +11,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { useT } from "@/lib/i18n/locale-context";
+import { useT, type TranslateFn } from "@/lib/i18n/locale-context";
 import type { NotificationDto } from "@reos/shared";
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: TranslateFn): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t("notifications.now");
+  if (mins < 60) return t("notifications.minutesAgo", { n: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return t("notifications.hoursAgo", { n: hours });
+  return t("notifications.daysAgo", { n: Math.floor(hours / 24) });
 }
 
 export function NotificationBell() {
@@ -111,7 +111,7 @@ export function NotificationBell() {
                   {n.title}
                 </span>
                 <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
-                  {timeAgo(n.createdAt)}
+                  {timeAgo(n.createdAt, t)}
                 </span>
               </div>
               {n.body && (

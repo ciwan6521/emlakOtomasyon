@@ -3,7 +3,7 @@ import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function ensureBranch(companyId: string, name: string, region: 'BUDVA' | 'KOTOR' | 'TIVAT' | 'BAR') {
+async function ensureBranch(companyId: string, name: string, region: 'CENTAR' | 'CITY_KVART' | 'STARI_AERODROM' | 'ZABJELO') {
   const existing = await prisma.branch.findFirst({ where: { companyId, name } });
   if (existing) return existing;
   return prisma.branch.create({ data: { companyId, name, region } });
@@ -25,8 +25,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  const budva = await ensureBranch(company.id, 'Budva HQ', 'BUDVA');
-  const kotor = await ensureBranch(company.id, 'Kotor Office', 'KOTOR');
+  const budva = await ensureBranch(company.id, 'Centar HQ', 'CENTAR');
+  const kotor = await ensureBranch(company.id, 'City Kvart Office', 'CITY_KVART');
 
   const mkUser = (email: string, fullName: string, roles: string[], branchId?: string) =>
     prisma.user.upsert({
@@ -49,7 +49,7 @@ async function main(): Promise<void> {
 
   // Leads
   const sources = ['FACEBOOK', 'INSTAGRAM', 'TELEGRAM', 'PORTAL', 'REFERRAL'] as const;
-  const regions = ['BUDVA', 'KOTOR', 'TIVAT', 'BAR'] as const;
+  const regions = ['CENTAR', 'CITY_KVART', 'STARI_AERODROM', 'ZABJELO'] as const;
   for (let i = 0; i < 40; i++) {
     await prisma.lead.create({
       data: {
@@ -84,8 +84,8 @@ async function main(): Promise<void> {
         status: i % 5 === 0 ? 'SOLD' : 'ACTIVE_LISTING',
         region,
         address: `Street ${i + 1}, ${region}`,
-        latitude: 42.28 + (i % 10) * 0.01,
-        longitude: 18.84 + (i % 10) * 0.01,
+        latitude: 42.43 + (i % 10) * 0.005,
+        longitude: 19.24 + (i % 10) * 0.005,
         price: 90000 + i * 15000,
         rooms: rooms[i % rooms.length],
         sizeM2: 45 + i * 5,

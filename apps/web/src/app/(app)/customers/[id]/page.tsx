@@ -31,9 +31,11 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
 import { formatCurrency, formatDate, relativeTime } from "@/lib/utils";
 import {
   Permission,
+  regionLabel,
   type CustomerDetailDto,
   type MatchDto,
 } from "@reos/shared";
@@ -47,6 +49,8 @@ interface MatchWithProperty extends MatchDto {
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const t = useT();
+  const e = useEnumLabel();
   const { can } = useAuth();
   const [editing, setEditing] = useState(false);
   const canManage = can(Permission.CUSTOMER_MANAGE);
@@ -71,9 +75,11 @@ export default function CustomerDetailPage() {
   if (error || !data) {
     return (
       <div className="py-20 text-center">
-        <p className="text-sm text-muted-foreground">Customer not found.</p>
+        <p className="text-sm text-muted-foreground">
+          {t("customers.notFound")}
+        </p>
         <Button variant="link" asChild className="mt-2">
-          <Link href="/customers">Back to customers</Link>
+          <Link href="/customers">{t("customers.backToList")}</Link>
         </Button>
       </div>
     );
@@ -84,18 +90,18 @@ export default function CustomerDetailPage() {
       <div className="mb-4">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/customers">
-            <ArrowLeft className="mr-1.5 h-4 w-4" /> Customers
+            <ArrowLeft className="mr-1.5 h-4 w-4" /> {t("page.customers.title")}
           </Link>
         </Button>
       </div>
 
       <PageHeader
         title={data.fullName}
-        description={`${data.kind} · ${data.intent} · ${data.phone}`}
+        description={`${e("customerKind", data.kind)} · ${e("customerIntent", data.intent)} · ${data.phone}`}
         action={
           canManage && (
             <Button variant="outline" onClick={() => setEditing(true)}>
-              <Pencil className="mr-1.5 h-4 w-4" /> Edit
+              <Pencil className="mr-1.5 h-4 w-4" /> {t("common.edit")}
             </Button>
           )
         }
@@ -104,7 +110,9 @@ export default function CustomerDetailPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Budget range</p>
+            <p className="text-xs text-muted-foreground">
+              {t("customers.budgetRange")}
+            </p>
             <p className="mt-1 text-lg font-semibold">
               {formatCurrency(data.budgetMin)} –{" "}
               {formatCurrency(data.budgetMax)}
@@ -113,7 +121,9 @@ export default function CustomerDetailPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Segment</p>
+            <p className="text-xs text-muted-foreground">
+              {t("customers.segment")}
+            </p>
             <div className="mt-1">
               <StatusBadge value={data.segment} />
             </div>
@@ -121,13 +131,17 @@ export default function CustomerDetailPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Property matches</p>
+            <p className="text-xs text-muted-foreground">
+              {t("customers.propertyMatches")}
+            </p>
             <p className="mt-1 text-lg font-semibold">{data.matchCount}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Appointments</p>
+            <p className="text-xs text-muted-foreground">
+              {t("customers.appointments")}
+            </p>
             <p className="mt-1 text-lg font-semibold">
               {data.appointments.length}
             </p>
@@ -138,32 +152,50 @@ export default function CustomerDetailPage() {
       <div className="mb-6 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Requirements</CardTitle>
+            <CardTitle className="text-base">
+              {t("customers.requirements")}
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
-              <span className="text-muted-foreground">Property type</span>
-              <p className="font-medium">{data.propertyType ?? "Any"}</p>
+              <span className="text-muted-foreground">
+                {t("customers.propertyType")}
+              </span>
+              <p className="font-medium">
+                {data.propertyType
+                  ? e("propertyType", data.propertyType)
+                  : t("customers.any")}
+              </p>
             </div>
             <div>
-              <span className="text-muted-foreground">Rooms</span>
+              <span className="text-muted-foreground">{t("customers.rooms")}</span>
               <p className="font-medium">{data.roomRequirement ?? "—"}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">Financing</span>
-              <p className="font-medium">{data.financing ?? "—"}</p>
+              <span className="text-muted-foreground">
+                {t("customers.financing")}
+              </span>
+              <p className="font-medium">
+                {data.financing ? e("financing", data.financing) : "—"}
+              </p>
             </div>
             <div>
-              <span className="text-muted-foreground">Residency</span>
-              <p className="font-medium">{data.residency ?? "—"}</p>
+              <span className="text-muted-foreground">
+                {t("customers.residency")}
+              </span>
+              <p className="font-medium">
+                {data.residency ? e("residency", data.residency) : "—"}
+              </p>
             </div>
             <div className="sm:col-span-2">
-              <span className="text-muted-foreground">Preferred regions</span>
+              <span className="text-muted-foreground">
+                {t("customers.preferredRegions")}
+              </span>
               <div className="mt-1 flex flex-wrap gap-1">
                 {data.preferredRegions.length ? (
                   data.preferredRegions.map((r) => (
                     <Badge key={r} variant="secondary">
-                      {r}
+                      {regionLabel(r)}
                     </Badge>
                   ))
                 ) : (
@@ -173,7 +205,7 @@ export default function CustomerDetailPage() {
             </div>
             {data.notes && (
               <div className="sm:col-span-2">
-                <span className="text-muted-foreground">Notes</span>
+                <span className="text-muted-foreground">{t("common.notes")}</span>
                 <p className="mt-1">{data.notes}</p>
               </div>
             )}
@@ -182,7 +214,7 @@ export default function CustomerDetailPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Contact</CardTitle>
+            <CardTitle className="text-base">{t("customers.contact")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex items-center gap-2">
@@ -203,13 +235,17 @@ export default function CustomerDetailPage() {
             )}
             {data.assignedToName && (
               <div>
-                <span className="text-muted-foreground">Assigned to</span>
+                <span className="text-muted-foreground">
+                  {t("customers.assignedTo")}
+                </span>
                 <p className="font-medium">{data.assignedToName}</p>
               </div>
             )}
             {data.lastContactAt && (
               <div>
-                <span className="text-muted-foreground">Last contact</span>
+                <span className="text-muted-foreground">
+                  {t("customers.lastContact")}
+                </span>
                 <p className="font-medium">
                   {relativeTime(data.lastContactAt)}
                 </p>
@@ -222,16 +258,16 @@ export default function CustomerDetailPage() {
       <Tabs defaultValue="matches">
         <TabsList>
           <TabsTrigger value="matches">
-            <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Matches (
-            {matches.length})
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />{" "}
+            {t("customers.tabMatches", { n: matches.length })}
           </TabsTrigger>
           <TabsTrigger value="deliveries">
-            <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> Sent (
-            {data.sentDeliveries.length})
+            <MessageSquare className="mr-1.5 h-3.5 w-3.5" />{" "}
+            {t("customers.tabSent", { n: data.sentDeliveries.length })}
           </TabsTrigger>
           <TabsTrigger value="appointments">
-            <CalendarDays className="mr-1.5 h-3.5 w-3.5" /> Appointments (
-            {data.appointments.length})
+            <CalendarDays className="mr-1.5 h-3.5 w-3.5" />{" "}
+            {t("customers.tabAppointments", { n: data.appointments.length })}
           </TabsTrigger>
         </TabsList>
 
@@ -240,11 +276,11 @@ export default function CustomerDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Reasons</TableHead>
+                  <TableHead>{t("customers.score")}</TableHead>
+                  <TableHead>{t("customers.property")}</TableHead>
+                  <TableHead>{t("customers.region")}</TableHead>
+                  <TableHead>{t("customers.price")}</TableHead>
+                  <TableHead>{t("customers.reasons")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -259,7 +295,7 @@ export default function CustomerDetailPage() {
                       {m.propertyTitle ?? m.propertyId.slice(0, 8)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {m.propertyRegion ?? "—"}
+                      {regionLabel(m.propertyRegion) || "—"}
                     </TableCell>
                     <TableCell>
                       {m.propertyPrice != null
@@ -283,7 +319,7 @@ export default function CustomerDetailPage() {
                       colSpan={5}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      No property matches yet.
+                      {t("customers.noMatches")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -297,9 +333,9 @@ export default function CustomerDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>When</TableHead>
-                  <TableHead>Channel</TableHead>
-                  <TableHead>Content</TableHead>
+                  <TableHead>{t("customers.when")}</TableHead>
+                  <TableHead>{t("customers.channel")}</TableHead>
+                  <TableHead>{t("customers.content")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -322,7 +358,7 @@ export default function CustomerDetailPage() {
                       colSpan={3}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      No deliveries sent yet.
+                      {t("customers.noDeliveries")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -336,10 +372,10 @@ export default function CustomerDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>When</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("customers.when")}</TableHead>
+                  <TableHead>{t("customers.title")}</TableHead>
+                  <TableHead>{t("customers.location")}</TableHead>
+                  <TableHead>{t("common.status")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -370,7 +406,7 @@ export default function CustomerDetailPage() {
                       colSpan={4}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      No appointments scheduled.
+                      {t("customers.noAppointments")}
                     </TableCell>
                   </TableRow>
                 )}

@@ -12,8 +12,10 @@ import {
   PropertyDto,
   PropertyStatus,
   QueueName,
+  SocialChannel,
 } from "@reos/shared";
 import { customAlphabet } from "nanoid";
+import { socialPostUrl } from "../social/domain/social-links";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { EventBus } from "../../common/events/event-bus";
 import { QueueService } from "../../common/queue/queue.service";
@@ -69,8 +71,8 @@ export class PropertiesService {
     let facebookUrl: string | null = null;
     for (const p of posts) {
       const refs = (p.externalRefs ?? {}) as Record<string, string>;
-      if (!instagramUrl && refs.instagram) instagramUrl = refs.instagram;
-      if (!facebookUrl && refs.facebook) facebookUrl = refs.facebook;
+      instagramUrl ??= socialPostUrl(refs, SocialChannel.INSTAGRAM);
+      facebookUrl ??= socialPostUrl(refs, SocialChannel.FACEBOOK);
       if (instagramUrl && facebookUrl) break;
     }
     return { instagramUrl, facebookUrl };

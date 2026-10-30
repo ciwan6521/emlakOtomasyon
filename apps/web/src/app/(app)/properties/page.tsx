@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
@@ -9,6 +10,7 @@ import {
   Heart,
   Instagram,
   MapPin,
+  Plus,
   Ruler,
   User,
 } from "lucide-react";
@@ -25,30 +27,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import { ApiClientError, api } from "@/lib/api";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { formatPriceWithPeriod } from "@/lib/utils";
 import {
   BuildType,
   ListingPurpose,
   PropertyStatus,
   Region,
+  REGION_LABELS,
   type Paginated,
   type PropertyDto,
 } from "@reos/shared";
 import { PropertyDialog } from "./property-dialog";
+import { NewPropertyDialog } from "./new-property-dialog";
 
 const AMENITY_FILTERS = [
-  ["hasSeaView", "Sea view"],
-  ["hasPool", "Pool"],
-  ["hasParking", "Parking"],
-  ["hasElevator", "Elevator"],
-  ["hasBalcony", "Balcony"],
-  ["isFurnished", "Furnished"],
-  ["hasGarden", "Garden"],
+  "hasSeaView",
+  "hasPool",
+  "hasParking",
+  "hasElevator",
+  "hasBalcony",
+  "isFurnished",
+  "hasGarden",
+] as const;
+
+const CARD_AMENITIES = [
+  "hasSeaView",
+  "hasPool",
+  "isFurnished",
+  "hasParking",
 ] as const;
 
 export default function PropertiesPage() {
+  return (
+    <Suspense fallback={null}>
+      <PropertiesPageInner />
+    </Suspense>
+  );
+}
+
+function PropertiesPageInner() {
+  const t = useT();
+  const e = useEnumLabel();
   const qc = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [region, setRegion] = useState("ALL");
   const [status, setStatus] = useState("ALL");
   const [purpose, setPurpose] = useState("ALL");
@@ -63,7 +89,16 @@ export default function PropertiesPage() {
   const [amenities, setAmenities] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<PropertyDto | null>(null);
+  const [creating, setCreating] = useState(false);
   const [favOverrides, setFavOverrides] = useState<Record<string, number>>({});
+
+  // The command palette deep-links here with ?new=1.
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setCreating(true);
+      router.replace(pathname);
+    }
+  }, [searchParams, router, pathname]);
 
   const activeAmenities = Object.keys(amenities).filter((k) => amenities[k]);
 
@@ -109,9 +144,22 @@ export default function PropertiesPage() {
     setAmenities((a) => ({ ...a, [key]: !a[key] }));
   }
 
+  const [publishError, setPublishError] = useState<string | null>(null);
   const publish = useMutation({
     mutationFn: (id: string) => api.post(`/properties/${id}/publish`),
+    onMutate: () => setPublishError(null),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["properties"] }),
+    onError: (err) => {
+      const detail =
+        err instanceof ApiClientError
+          ? err.error.detail || err.error.title
+          : "";
+      setPublishError(
+        /without media/i.test(detail)
+          ? t("properties.publishNeedsMedia")
+          : detail || t("common.error"),
+      );
+    },
   });
 
   const favorite = useMutation({
@@ -132,25 +180,33 @@ export default function PropertiesPage() {
       <PageHeader
         titleKey="page.properties.title"
         descriptionKey="page.properties.subtitle"
-        action={<ExportCsvButton resource="properties" />}
+        action={
+          <div className="flex items-center gap-2">
+            <ExportCsvButton resource="properties" />
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              {t("properties.new")}
+            </Button>
+          </div>
+        }
       />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Input
-          placeholder="Search reference, title, address…"
+          placeholder={t("properties.searchPlaceholder")}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(ev) => setSearch(ev.target.value)}
           className="max-w-xs"
         />
         <Select value={region} onValueChange={setRegion}>
-          <SelectTrigger className="w-36">
+          <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All regions</SelectItem>
+          <SelectContent className="max-h-72">
+            <SelectItem value="ALL">{t("properties.allRegions")}</SelectItem>
             {Object.values(Region).map((r) => (
               <SelectItem key={r} value={r}>
-                {r}
+                {REGION_LABELS[r]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -160,94 +216,102 @@ export default function PropertiesPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All statuses</SelectItem>
+            <SelectItem value="ALL">{t("properties.allStatuses")}</SelectItem>
             {Object.values(PropertyStatus).map((s) => (
               <SelectItem key={s} value={s}>
-                {s.replace(/_/g, " ")}
+                {e("status", s)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={purpose} onValueChange={setPurpose}>
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">Sale & rent</SelectItem>
+            <SelectItem value="ALL">{t("properties.saleAndRent")}</SelectItem>
             {Object.values(ListingPurpose).map((p) => (
               <SelectItem key={p} value={p}>
-                {p}
+                {e("purpose", p)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={buildType} onValueChange={setBuildType}>
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">Any age</SelectItem>
-            <SelectItem value={BuildType.NEW}>New build</SelectItem>
-            <SelectItem value={BuildType.OLD}>Old build</SelectItem>
+            <SelectItem value="ALL">{t("properties.anyAge")}</SelectItem>
+            {Object.values(BuildType).map((b) => (
+              <SelectItem key={b} value={b}>
+                {e("buildType", b)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Input
-          placeholder="Min €"
+          placeholder={t("properties.minPrice")}
           type="number"
           value={minPrice}
-          onChange={(e) => setMinPrice(e.target.value)}
+          onChange={(ev) => setMinPrice(ev.target.value)}
           className="w-24"
         />
         <Input
-          placeholder="Max €"
+          placeholder={t("properties.maxPrice")}
           type="number"
           value={maxPrice}
-          onChange={(e) => setMaxPrice(e.target.value)}
+          onChange={(ev) => setMaxPrice(ev.target.value)}
           className="w-24"
         />
         <Input
-          placeholder="Rooms"
+          placeholder={t("properties.rooms")}
           value={rooms}
-          onChange={(e) => setRooms(e.target.value)}
+          onChange={(ev) => setRooms(ev.target.value)}
           className="w-24"
         />
         <Input
-          placeholder="Floor"
+          placeholder={t("properties.floor")}
           type="number"
           value={floor}
-          onChange={(e) => setFloor(e.target.value)}
+          onChange={(ev) => setFloor(ev.target.value)}
           className="w-20"
         />
         <Input
-          placeholder="Neighborhood"
+          placeholder={t("properties.neighborhood")}
           value={neighborhood}
-          onChange={(e) => setNeighborhood(e.target.value)}
+          onChange={(ev) => setNeighborhood(ev.target.value)}
           className="w-36"
         />
         <Input
-          placeholder="Min m²"
+          placeholder={t("properties.minSqm")}
           type="number"
           value={minSqm}
-          onChange={(e) => setMinSqm(e.target.value)}
+          onChange={(ev) => setMinSqm(ev.target.value)}
           className="w-20"
         />
         <Input
-          placeholder="Max m²"
+          placeholder={t("properties.maxSqm")}
           type="number"
           value={maxSqm}
-          onChange={(e) => setMaxSqm(e.target.value)}
+          onChange={(ev) => setMaxSqm(ev.target.value)}
           className="w-20"
         />
       </div>
+      {publishError && (
+        <p className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {publishError}
+        </p>
+      )}
       <div className="mb-4 flex flex-wrap gap-1.5">
-        {AMENITY_FILTERS.map(([key, label]) => (
+        {AMENITY_FILTERS.map((key) => (
           <button
             key={key}
             type="button"
             onClick={() => toggleAmenity(key)}
             className={`rounded-full border px-3 py-1 text-xs transition-colors ${amenities[key] ? "border-primary bg-primary text-primary-foreground" : "border-input hover:bg-accent"}`}
           >
-            {label}
+            {t(`amenity.${key}` as MessageKey)}
           </button>
         ))}
       </div>
@@ -274,7 +338,7 @@ export default function PropertiesPage() {
               </div>
               <button
                 type="button"
-                title="Add favorite"
+                title={t("properties.addFavorite")}
                 disabled={favorite.isPending}
                 onClick={() => favorite.mutate(p.id)}
                 className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-xs shadow-sm transition-colors hover:bg-background"
@@ -298,7 +362,8 @@ export default function PropertiesPage() {
               <p className="truncate text-sm font-medium">{p.title}</p>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> {p.neighborhood || p.region}
+                  <MapPin className="h-3 w-3" />{" "}
+                  {p.neighborhood || REGION_LABELS[p.region]}
                 </span>
                 <span>{p.rooms}</span>
                 <span className="flex items-center gap-1">
@@ -306,7 +371,10 @@ export default function PropertiesPage() {
                 </span>
               </div>
               {p.createdByName && (
-                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <p
+                  className="flex items-center gap-1 text-xs text-muted-foreground"
+                  title={t("properties.createdBy")}
+                >
                   <User className="h-3 w-3" /> {p.createdByName}
                 </p>
               )}
@@ -334,33 +402,21 @@ export default function PropertiesPage() {
                   )}
                 </div>
               )}
-              {(p.hasSeaView || p.hasPool || p.isFurnished || p.hasParking) && (
+              {CARD_AMENITIES.some((k) => p[k]) && (
                 <div className="flex flex-wrap gap-1">
-                  {p.hasSeaView && (
-                    <span className="rounded bg-accent px-1.5 py-0.5 text-[10px]">
-                      Sea view
+                  {CARD_AMENITIES.filter((k) => p[k]).map((k) => (
+                    <span
+                      key={k}
+                      className="rounded bg-accent px-1.5 py-0.5 text-[10px]"
+                    >
+                      {t(`amenity.${k}` as MessageKey)}
                     </span>
-                  )}
-                  {p.hasPool && (
-                    <span className="rounded bg-accent px-1.5 py-0.5 text-[10px]">
-                      Pool
-                    </span>
-                  )}
-                  {p.isFurnished && (
-                    <span className="rounded bg-accent px-1.5 py-0.5 text-[10px]">
-                      Furnished
-                    </span>
-                  )}
-                  {p.hasParking && (
-                    <span className="rounded bg-accent px-1.5 py-0.5 text-[10px]">
-                      Parking
-                    </span>
-                  )}
+                  ))}
                 </div>
               )}
               <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                <span>{p.viewCount} views</span>
-                <span>{p.sentCount} sent</span>
+                <span>{t("properties.views", { n: p.viewCount })}</span>
+                <span>{t("properties.sent", { n: p.sentCount })}</span>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -369,7 +425,7 @@ export default function PropertiesPage() {
                   className="flex-1"
                   onClick={() => setSelected(p)}
                 >
-                  Manage
+                  {t("properties.manage")}
                 </Button>
                 {p.status !== PropertyStatus.ACTIVE_LISTING &&
                   p.status !== PropertyStatus.SOLD && (
@@ -379,7 +435,7 @@ export default function PropertiesPage() {
                       disabled={publish.isPending}
                       onClick={() => publish.mutate(p.id)}
                     >
-                      Publish
+                      {t("properties.publish")}
                     </Button>
                   )}
               </div>
@@ -389,9 +445,15 @@ export default function PropertiesPage() {
       </div>
       {query.data?.data.length === 0 && (
         <p className="mt-10 text-center text-sm text-muted-foreground">
-          No properties found.
+          {t("properties.empty")}
         </p>
       )}
+
+      <NewPropertyDialog
+        open={creating}
+        onOpenChange={setCreating}
+        onCreated={(property) => setSelected(property)}
+      />
 
       <PropertyDialog
         property={selected}

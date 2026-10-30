@@ -15,7 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ListingPurpose, PropertyType, Region } from "@reos/shared";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
+import type { MessageKey } from "@/lib/i18n/messages";
+import {
+  ListingPurpose,
+  PropertyType,
+  Region,
+  REGION_LABELS,
+} from "@reos/shared";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
@@ -25,6 +32,20 @@ interface PresignResult {
   key: string;
   publicUrl: string;
   expiresInSeconds: number;
+}
+
+/**
+ * Status/feedback text shown to the owner. Our own messages are stored as a
+ * key so they follow the active locale; server-provided errors are raw text.
+ */
+type Feedback =
+  | { key: MessageKey; vars?: Record<string, string | number> }
+  | { text: string };
+
+class UploadError extends Error {
+  constructor(public readonly fileName: string) {
+    super(`Could not upload ${fileName}`);
+  }
 }
 
 function readAsDataUrl(file: File): Promise<string> {
@@ -65,18 +86,23 @@ async function uploadMedia(token: string, file: File): Promise<string> {
   if (file.type.startsWith("image/") && file.size <= 2 * 1024 * 1024) {
     return readAsDataUrl(file);
   }
-  throw new Error(
-    `Could not upload ${file.name}. Try a smaller image or contact support.`,
-  );
+  throw new UploadError(file.name);
 }
 
 export default function OnboardPage() {
+  const t = useT();
+  const e = useEnumLabel();
   const { token } = useParams<{ token: string }>();
   const fileInput = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<"loading" | "form" | "done" | "error">(
     "loading",
   );
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<Feedback | null>(null);
+  const messageText = message
+    ? "key" in message
+      ? t(message.key, message.vars)
+      : message.text
+    : "";
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -85,7 +111,7 @@ export default function OnboardPage() {
     title: "",
     type: PropertyType.APARTMENT,
     purpose: ListingPurpose.SALE,
-    region: Region.BUDVA,
+    region: Region.CENTAR,
     address: "",
     price: 0,
     rooms: "2+1",
@@ -102,7 +128,7 @@ export default function OnboardPage() {
       .then((data) => {
         if (data?.status === "APPROVED") {
           setState("done");
-          setMessage("This property has already been approved.");
+          setMessage({ key: "onboard.alreadyApproved" });
         } else {
           setState("form");
           if (data?.ownerName)
@@ -131,13 +157,13 @@ export default function OnboardPage() {
       })
       .catch(() => {
         setState("error");
-        setMessage("Invalid or expired link.");
+        setMessage({ key: "onboard.invalidLink" });
       });
   }, [token]);
 
   async function handleFiles(files: FileList) {
     setUploading(true);
-    setMessage("");
+    setMessage(null);
     try {
       const urls: string[] = [];
       for (const file of Array.from(files)) {
@@ -145,7 +171,16 @@ export default function OnboardPage() {
       }
       setForm((f) => ({ ...f, mediaUrls: [...f.mediaUrls, ...urls] }));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Upload failed.");
+      if (err instanceof UploadError) {
+        setMessage({
+          key: "onboard.uploadError",
+          vars: { name: err.fileName },
+        });
+      } else if (err instanceof Error) {
+        setMessage({ text: err.message });
+      } else {
+        setMessage({ key: "onboard.uploadFailed" });
+      }
     } finally {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
@@ -162,11 +197,11 @@ export default function OnboardPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (form.mediaUrls.length === 0) {
-      setMessage("Please upload at least one photo.");
+      setMessage({ key: "onboard.needPhoto" });
       return;
     }
     setSubmitting(true);
-    setMessage("");
+    setMessage(null);
     const payload = {
       ownerName: form.ownerName,
       ownerPhone: form.ownerPhone,
@@ -192,11 +227,12 @@ export default function OnboardPage() {
     setSubmitting(false);
     if (res.ok) {
       setState("done");
-      setMessage("Thank you! Your property has been submitted for review.");
+      setMessage({ key: "onboard.submitted" });
     } else {
       const err = await res.json().catch(() => null);
+      const serverText = err?.title ?? err?.message;
       setMessage(
-        err?.title ?? err?.message ?? "Submission failed. Please try again.",
+        serverText ? { text: serverText } : { key: "onboard.submitFailed" },
       );
     }
   }
@@ -210,16 +246,17 @@ export default function OnboardPage() {
               <Building className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-semibold">Adriatic Real Estate</p>
+              <p className="font-semibold">Point</p>
               <p className="text-xs text-muted-foreground">
-                Property onboarding
+                {t("onboard.subtitle")}
               </p>
             </div>
           </div>
 
           {state === "loading" && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              <Loader2 className="h-4 w-4 animate-spin" />{" "}
+              {t("onboard.loading")}
             </div>
           )}
           {(state === "done" || state === "error") && (
@@ -227,19 +264,18 @@ export default function OnboardPage() {
               <CheckCircle2
                 className={`mb-3 h-10 w-10 ${state === "done" ? "text-success" : "text-destructive"}`}
               />
-              <p className="text-sm">{message}</p>
+              <p className="text-sm">{messageText}</p>
             </div>
           )}
 
           {state === "form" && (
             <form onSubmit={submit} className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Please provide your property details. Our team will review and
-                publish it.
+                {t("onboard.intro")}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Your name</Label>
+                  <Label>{t("onboard.yourName")}</Label>
                   <Input
                     value={form.ownerName}
                     onChange={(e) =>
@@ -249,7 +285,7 @@ export default function OnboardPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Phone</Label>
+                  <Label>{t("common.phone")}</Label>
                   <Input
                     value={form.ownerPhone}
                     onChange={(e) =>
@@ -260,7 +296,7 @@ export default function OnboardPage() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Listing title</Label>
+                <Label>{t("onboard.listingTitle")}</Label>
                 <Input
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -269,7 +305,7 @@ export default function OnboardPage() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Type</Label>
+                  <Label>{t("onboard.type")}</Label>
                   <Select
                     value={form.type}
                     onValueChange={(v) =>
@@ -280,16 +316,16 @@ export default function OnboardPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.values(PropertyType).map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
+                      {Object.values(PropertyType).map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {e("propertyType", type)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Purpose</Label>
+                  <Label>{t("onboard.purpose")}</Label>
                   <Select
                     value={form.purpose}
                     onValueChange={(v) =>
@@ -300,16 +336,16 @@ export default function OnboardPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.values(ListingPurpose).map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
+                      {Object.values(ListingPurpose).map((purpose) => (
+                        <SelectItem key={purpose} value={purpose}>
+                          {e("purpose", purpose)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Region</Label>
+                  <Label>{t("onboard.region")}</Label>
                   <Select
                     value={form.region}
                     onValueChange={(v) =>
@@ -322,7 +358,7 @@ export default function OnboardPage() {
                     <SelectContent>
                       {Object.values(Region).map((r) => (
                         <SelectItem key={r} value={r}>
-                          {r}
+                          {REGION_LABELS[r]}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -330,7 +366,7 @@ export default function OnboardPage() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Address</Label>
+                <Label>{t("onboard.address")}</Label>
                 <Input
                   value={form.address}
                   onChange={(e) =>
@@ -341,7 +377,7 @@ export default function OnboardPage() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Price (EUR)</Label>
+                  <Label>{t("onboard.priceEur")}</Label>
                   <Input
                     type="number"
                     value={form.price || ""}
@@ -352,7 +388,7 @@ export default function OnboardPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Rooms</Label>
+                  <Label>{t("onboard.rooms")}</Label>
                   <Input
                     value={form.rooms}
                     onChange={(e) =>
@@ -361,7 +397,7 @@ export default function OnboardPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Size (m²)</Label>
+                  <Label>{t("onboard.sizeM2")}</Label>
                   <Input
                     type="number"
                     value={form.sizeM2 || ""}
@@ -374,41 +410,41 @@ export default function OnboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Floor</Label>
+                  <Label>{t("onboard.floor")}</Label>
                   <Input
                     type="number"
                     value={form.floor}
                     onChange={(e) =>
                       setForm({ ...form, floor: e.target.value })
                     }
-                    placeholder="e.g. 3"
+                    placeholder={t("onboard.floorPlaceholder")}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Monthly dues / aidat (EUR)</Label>
+                  <Label>{t("onboard.monthlyDues")}</Label>
                   <Input
                     type="number"
                     value={form.monthlyDues}
                     onChange={(e) =>
                       setForm({ ...form, monthlyDues: e.target.value })
                     }
-                    placeholder="Optional"
+                    placeholder={t("common.optional")}
                   />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Notes</Label>
+                <Label>{t("common.notes")}</Label>
                 <textarea
                   className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Additional details about the property…"
+                  placeholder={t("onboard.notesPlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Photos</Label>
+                  <Label>{t("onboard.photos")}</Label>
                   <div>
                     <input
                       ref={fileInput}
@@ -432,7 +468,7 @@ export default function OnboardPage() {
                       ) : (
                         <Upload className="mr-1.5 h-3.5 w-3.5" />
                       )}
-                      Upload photos
+                      {t("onboard.uploadPhotos")}
                     </Button>
                   </div>
                 </div>
@@ -463,12 +499,14 @@ export default function OnboardPage() {
                   </div>
                 ) : (
                   <p className="rounded-md border border-dashed py-6 text-center text-xs text-muted-foreground">
-                    Upload at least one photo of the property.
+                    {t("onboard.photosHint")}
                   </p>
                 )}
               </div>
 
-              {message && <p className="text-sm text-destructive">{message}</p>}
+              {messageText && (
+                <p className="text-sm text-destructive">{messageText}</p>
+              )}
               <Button
                 type="submit"
                 className="w-full"
@@ -477,10 +515,10 @@ export default function OnboardPage() {
                 {submitting ? (
                   <>
                     <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />{" "}
-                    Submitting…
+                    {t("onboard.submitting")}
                   </>
                 ) : (
-                  "Submit property"
+                  t("onboard.submit")
                 )}
               </Button>
             </form>

@@ -47,9 +47,18 @@ import { useRealtime } from "@/lib/use-realtime";
 
 import { api } from "@/lib/api";
 
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
+
+import type { MessageKey } from "@/lib/i18n/messages";
+
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 
-import type { DashboardData, RentalOverview, TaskDto } from "@reos/shared";
+import {
+  regionLabel,
+  type DashboardData,
+  type RentalOverview,
+  type TaskDto,
+} from "@reos/shared";
 
 const SEVERITY: Record<string, string> = {
   high: "bg-destructive/10 text-destructive border-destructive/30",
@@ -57,6 +66,14 @@ const SEVERITY: Record<string, string> = {
   medium: "bg-warning/10 text-warning border-warning/30",
 
   low: "bg-muted text-muted-foreground border-border",
+};
+
+const SEVERITY_KEY: Record<string, MessageKey> = {
+  high: "dashboard.severityHigh",
+
+  medium: "dashboard.severityMedium",
+
+  low: "dashboard.severityLow",
 };
 
 const PRIORITY_VARIANT = {
@@ -68,6 +85,8 @@ const PRIORITY_VARIANT = {
 
 export default function DashboardPage() {
   useRealtime();
+
+  const t = useT();
 
   const { data, isLoading } = useQuery({
     queryKey: ["analytics", "dashboard"],
@@ -88,13 +107,13 @@ export default function DashboardPage() {
   const k = data?.kpis;
 
   const trend = (k?.trend.leads ?? []).map((v, i) => ({
-    day: `D${i + 1}`,
+    day: t("dashboard.dayAbbr", { n: i + 1 }),
     leads: v,
     calls: k?.trend.calls[i] ?? 0,
   }));
 
   const regionData = (data?.regions ?? []).map((r) => ({
-    region: r.region.replace(/_/g, " "),
+    region: regionLabel(r.region),
     active: r.activeListings,
     sold: r.sold,
   }));
@@ -116,58 +135,61 @@ export default function DashboardPage() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              label="Active portfolio"
+              label={t("dashboard.activePortfolio")}
               value={formatNumber(k.activeListings)}
-              sub={`${k.forSale} sale · ${k.forRent} rent`}
+              sub={t("dashboard.saleRentSub", {
+                sale: k.forSale,
+                rent: k.forRent,
+              })}
               icon={Building2}
               accent="primary"
             />
 
             <StatCard
-              label="Leads today"
+              label={t("dashboard.leadsToday")}
               value={formatNumber(k.dailyLeads)}
               icon={Target}
               accent="primary"
             />
 
             <StatCard
-              label="Calls today"
+              label={t("dashboard.callsToday")}
               value={formatNumber(k.callsMade)}
               icon={PhoneCall}
               accent="primary"
             />
 
             <StatCard
-              label="Pending callbacks"
+              label={t("dashboard.pendingCallbacks")}
               value={formatNumber(k.callbacksPending)}
               icon={PhoneOutgoing}
               accent="warning"
             />
 
             <StatCard
-              label="Today's appointments"
+              label={t("dashboard.todaysAppointments")}
               value={formatNumber(k.appointmentsToday)}
               icon={CalendarDays}
               accent="primary"
             />
 
             <StatCard
-              label="New listings (7d)"
+              label={t("dashboard.newListings7d")}
               value={formatNumber(k.newListingsThisWeek)}
               icon={Home}
               accent="success"
             />
 
             <StatCard
-              label="Sold this month"
+              label={t("dashboard.soldThisMonth")}
               value={formatNumber(k.soldThisMonth)}
-              sub={`${k.rentedThisMonth} rented`}
+              sub={t("dashboard.rentedSub", { n: k.rentedThisMonth })}
               icon={KeyRound}
               accent="success"
             />
 
             <StatCard
-              label="Commission this month"
+              label={t("dashboard.commissionThisMonth")}
               value={formatCurrency(k.commissionThisMonth)}
               icon={DollarSign}
               accent="success"
@@ -178,41 +200,41 @@ export default function DashboardPage() {
             <div className="mt-4">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-muted-foreground">
-                  Rental operations
+                  {t("dashboard.rentalOperations")}
                 </h2>
 
                 <Link
                   href="/rentals"
                   className="text-xs text-primary hover:underline"
                 >
-                  View all →
+                  {t("dashboard.viewAllArrow")}
                 </Link>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
-                  label="Active leases"
+                  label={t("dashboard.activeLeases")}
                   value={formatNumber(rental.activeLeases)}
                   icon={KeyRound}
                   accent="primary"
                 />
 
                 <StatCard
-                  label="Overdue payments"
+                  label={t("dashboard.overduePayments")}
                   value={formatNumber(rental.overduePayments)}
                   icon={AlarmClock}
                   accent="warning"
                 />
 
                 <StatCard
-                  label="Open maintenance"
+                  label={t("dashboard.openMaintenance")}
                   value={formatNumber(rental.openMaintenance)}
                   icon={Activity}
                   accent="warning"
                 />
 
                 <StatCard
-                  label="Collected this month"
+                  label={t("dashboard.collectedThisMonth")}
                   value={formatCurrency(rental.monthlyRentCollected)}
                   icon={DollarSign}
                   accent="success"
@@ -223,28 +245,28 @@ export default function DashboardPage() {
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <StatCard
-              label="Conversion rate"
+              label={t("dashboard.conversionRate")}
               value={`${k.conversionRate}%`}
               icon={TrendingUp}
               accent="success"
             />
 
             <StatCard
-              label="Call center conversion"
+              label={t("dashboard.callCenterConversion")}
               value={`${data?.callCenterConversion ?? 0}%`}
               icon={PhoneCall}
               accent="success"
             />
 
             <StatCard
-              label="Sales closed (all-time)"
+              label={t("dashboard.salesClosedAllTime")}
               value={formatNumber(k.salesClosed)}
               icon={Activity}
               accent="primary"
             />
 
             <StatCard
-              label="Revenue (all-time)"
+              label={t("dashboard.revenueAllTime")}
               value={formatCurrency(k.revenue)}
               icon={DollarSign}
               accent="success"
@@ -256,7 +278,7 @@ export default function DashboardPage() {
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Leads & calls — last 7 days</CardTitle>
+            <CardTitle>{t("dashboard.leadsCallsLast7Days")}</CardTitle>
           </CardHeader>
 
           <CardContent>
@@ -303,6 +325,7 @@ export default function DashboardPage() {
                 <Area
                   type="monotone"
                   dataKey="leads"
+                  name={t("dashboard.chartLeads")}
                   stroke="hsl(var(--primary))"
                   fill="url(#g1)"
                   strokeWidth={2}
@@ -311,6 +334,7 @@ export default function DashboardPage() {
                 <Area
                   type="monotone"
                   dataKey="calls"
+                  name={t("dashboard.chartCalls")}
                   stroke="hsl(var(--success))"
                   fillOpacity={0}
                   strokeWidth={2}
@@ -322,7 +346,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Sales by region</CardTitle>
+            <CardTitle>{t("dashboard.salesByRegion")}</CardTitle>
           </CardHeader>
 
           <CardContent>
@@ -358,14 +382,14 @@ export default function DashboardPage() {
 
                 <Bar
                   dataKey="active"
-                  name="Active"
+                  name={t("dashboard.chartActive")}
                   fill="hsl(var(--primary))"
                   radius={[4, 4, 0, 0]}
                 />
 
                 <Bar
                   dataKey="sold"
-                  name="Sold"
+                  name={t("dashboard.chartSold")}
                   fill="hsl(var(--success))"
                   radius={[4, 4, 0, 0]}
                 />
@@ -379,7 +403,8 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-4 w-4 text-warning" /> Top sellers
+              <Trophy className="h-4 w-4 text-warning" />{" "}
+              {t("dashboard.topSellers")}
             </CardTitle>
           </CardHeader>
 
@@ -402,7 +427,7 @@ export default function DashboardPage() {
 
             {(!data?.topSellers || data.topSellers.length === 0) && (
               <p className="text-sm text-muted-foreground">
-                No closed deals yet.
+                {t("dashboard.noClosedDeals")}
               </p>
             )}
           </CardContent>
@@ -411,7 +436,8 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Home className="h-4 w-4 text-primary" /> Top portfolio builders
+              <Home className="h-4 w-4 text-primary" />{" "}
+              {t("dashboard.topPortfolioBuilders")}
             </CardTitle>
           </CardHeader>
 
@@ -427,7 +453,7 @@ export default function DashboardPage() {
                 </span>
 
                 <span className="text-sm text-muted-foreground">
-                  {a.value} listings
+                  {t("dashboard.listingsCount", { n: a.value })}
                 </span>
               </div>
             ))}
@@ -435,7 +461,7 @@ export default function DashboardPage() {
             {(!data?.topPortfolioBuilders ||
               data.topPortfolioBuilders.length === 0) && (
               <p className="text-sm text-muted-foreground">
-                No portfolio data yet.
+                {t("dashboard.noPortfolioData")}
               </p>
             )}
           </CardContent>
@@ -444,7 +470,8 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-primary" /> Newly uploaded listings
+              <Bell className="h-4 w-4 text-primary" />{" "}
+              {t("dashboard.newlyUploadedListings")}
             </CardTitle>
           </CardHeader>
 
@@ -464,7 +491,9 @@ export default function DashboardPage() {
             ))}
 
             {(!data?.recentListings || data.recentListings.length === 0) && (
-              <p className="text-sm text-muted-foreground">No listings yet.</p>
+              <p className="text-sm text-muted-foreground">
+                {t("dashboard.noListings")}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -474,14 +503,15 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="flex items-center gap-2">
-              <CheckSquare className="h-4 w-4 text-primary" /> Pending tasks
+              <CheckSquare className="h-4 w-4 text-primary" />{" "}
+              {t("dashboard.pendingTasks")}
             </CardTitle>
 
             <Link
               href="/tasks"
               className="text-xs text-primary hover:underline"
             >
-              View all
+              {t("dashboard.viewAll")}
             </Link>
           </CardHeader>
 
@@ -491,7 +521,9 @@ export default function DashboardPage() {
             ))}
 
             {(!data?.pendingTasks || data.pendingTasks.length === 0) && (
-              <p className="text-sm text-muted-foreground">No pending tasks.</p>
+              <p className="text-sm text-muted-foreground">
+                {t("dashboard.noPendingTasks")}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -499,7 +531,8 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlarmClock className="h-4 w-4 text-destructive" /> Alarm center
+              <AlarmClock className="h-4 w-4 text-destructive" />{" "}
+              {t("dashboard.alarmCenter")}
             </CardTitle>
           </CardHeader>
 
@@ -517,14 +550,16 @@ export default function DashboardPage() {
                 </div>
 
                 <span className="ml-2 shrink-0 text-xs uppercase">
-                  {a.severity}
+                  {SEVERITY_KEY[a.severity]
+                    ? t(SEVERITY_KEY[a.severity])
+                    : a.severity}
                 </span>
               </Link>
             ))}
 
             {(!data?.alarms || data.alarms.length === 0) && (
               <p className="text-sm text-muted-foreground">
-                All clear — no active alarms.
+                {t("dashboard.allClear")}
               </p>
             )}
           </CardContent>
@@ -535,6 +570,8 @@ export default function DashboardPage() {
 }
 
 function PendingTaskRow({ task }: { task: TaskDto }) {
+  const e = useEnumLabel();
+
   return (
     <Link
       href="/tasks"
@@ -544,7 +581,7 @@ function PendingTaskRow({ task }: { task: TaskDto }) {
         <p className="truncate font-medium">{task.title}</p>
 
         <p className="text-xs text-muted-foreground">
-          {task.type.replace(/_/g, " ").toLowerCase()}
+          {e("taskType", task.type)}
 
           {task.assigneeName ? ` · ${task.assigneeName}` : ""}
         </p>
@@ -552,7 +589,7 @@ function PendingTaskRow({ task }: { task: TaskDto }) {
 
       <div className="flex shrink-0 flex-col items-end gap-1">
         <Badge variant={PRIORITY_VARIANT[task.priority]}>
-          {task.priority.toLowerCase()}
+          {e("taskPriority", task.priority)}
         </Badge>
 
         {task.dueAt && (

@@ -7,7 +7,7 @@ import {
 } from "./match-scoring";
 
 const property: MatchableProperty = {
-  region: Region.BUDVA,
+  region: Region.CITY_KVART,
   type: PropertyType.APARTMENT,
   purpose: ListingPurpose.SALE,
   price: 200_000,
@@ -15,7 +15,7 @@ const property: MatchableProperty = {
 };
 
 const customer: MatchableCustomer = {
-  preferredRegions: [Region.BUDVA],
+  preferredRegions: [Region.CITY_KVART],
   propertyType: PropertyType.APARTMENT,
   budgetMin: 150_000,
   budgetMax: 250_000,
@@ -37,7 +37,7 @@ describe("evaluateMatch", () => {
 
   it("drops below threshold when region and budget both miss", () => {
     const result = evaluateMatch(
-      { ...property, region: Region.PODGORICA, price: 600_000 },
+      { ...property, region: Region.KONIK, price: 600_000 },
       customer,
     );
     expect(result.score).toBeLessThan(MATCH_THRESHOLD);

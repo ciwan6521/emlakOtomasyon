@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
 import { formatDate } from "@/lib/utils";
 import {
   DocumentStatus,
@@ -40,6 +41,8 @@ interface PresignResult {
 }
 
 export default function DocumentsPage() {
+  const t = useT();
+  const e = useEnumLabel();
   const { can } = useAuth();
   const qc = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -115,9 +118,9 @@ export default function DocumentsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(DocumentType).map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
+                  {Object.values(DocumentType).map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {e("documentType", type)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -139,7 +142,7 @@ export default function DocumentsPage() {
                 ) : (
                   <Upload className="mr-1.5 h-4 w-4" />
                 )}
-                Upload
+                {t("documents.upload")}
               </Button>
             </div>
           )
@@ -152,10 +155,10 @@ export default function DocumentsPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All types</SelectItem>
-            {Object.values(DocumentType).map((t) => (
-              <SelectItem key={t} value={t}>
-                {t}
+            <SelectItem value="ALL">{t("documents.allTypes")}</SelectItem>
+            {Object.values(DocumentType).map((type) => (
+              <SelectItem key={type} value={type}>
+                {e("documentType", type)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -166,11 +169,13 @@ export default function DocumentsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Uploaded</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("common.name")}</TableHead>
+              <TableHead>{t("documents.type")}</TableHead>
+              <TableHead>{t("documents.uploaded")}</TableHead>
+              <TableHead>{t("common.status")}</TableHead>
+              <TableHead className="text-right">
+                {t("common.actions")}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -188,7 +193,7 @@ export default function DocumentsPage() {
                   </a>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {d.type}
+                  {e("documentType", d.type)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDate(d.createdAt)}
@@ -210,13 +215,13 @@ export default function DocumentsPage() {
                       <SelectContent>
                         {Object.values(DocumentStatus).map((s) => (
                           <SelectItem key={s} value={s}>
-                            {s}
+                            {e("status", s)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    d.status
+                    e("status", d.status)
                   )}
                 </TableCell>
                 <TableCell className="text-right">
@@ -226,12 +231,15 @@ export default function DocumentsPage() {
                       variant="outline"
                       onClick={() => sign.mutate(d.id)}
                     >
-                      <PenLine className="mr-1.5 h-3.5 w-3.5" /> Mark signed
+                      <PenLine className="mr-1.5 h-3.5 w-3.5" />{" "}
+                      {t("documents.markSigned")}
                     </Button>
                   )}
                   {d.status === DocumentStatus.SIGNED && d.signedAt && (
                     <span className="text-xs text-muted-foreground">
-                      Signed {formatDate(d.signedAt)}
+                      {t("documents.signedOn", {
+                        date: formatDate(d.signedAt),
+                      })}
                     </span>
                   )}
                 </TableCell>
@@ -243,7 +251,7 @@ export default function DocumentsPage() {
                   colSpan={5}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading…
+                  {t("documents.loading")}
                 </TableCell>
               </TableRow>
             )}
@@ -253,7 +261,7 @@ export default function DocumentsPage() {
                   colSpan={5}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No documents yet.
+                  {t("documents.empty")}
                 </TableCell>
               </TableRow>
             )}

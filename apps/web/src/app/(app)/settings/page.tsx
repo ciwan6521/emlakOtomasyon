@@ -35,6 +35,7 @@ import {
   type CompanySettingsDto,
 } from "@reos/shared";
 import { useLocale, useT } from "@/lib/i18n/locale-context";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 interface CompanyDto {
   id: string;
@@ -64,14 +65,14 @@ interface IntegrationStatusDto {
 
 const NOTIFICATION_TOGGLES: Array<{
   key: keyof NonNullable<CompanySettingsDto["notifications"]>;
-  label: string;
+  labelKey: MessageKey;
 }> = [
-  { key: "newLead", label: "New lead" },
-  { key: "newCustomer", label: "New customer" },
-  { key: "newMessage", label: "New message" },
-  { key: "callback", label: "Callback reminder" },
-  { key: "newPortfolio", label: "New portfolio listing" },
-  { key: "priceUpdated", label: "Price updated" },
+  { key: "newLead", labelKey: "settingsPage.notif.newLead" },
+  { key: "newCustomer", labelKey: "settingsPage.notif.newCustomer" },
+  { key: "newMessage", labelKey: "settingsPage.notif.newMessage" },
+  { key: "callback", labelKey: "settingsPage.notif.callback" },
+  { key: "newPortfolio", labelKey: "settingsPage.notif.newPortfolio" },
+  { key: "priceUpdated", labelKey: "settingsPage.notif.priceUpdated" },
 ];
 
 function Toggle({
@@ -266,18 +267,18 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" /> Notifications
+              <MessageSquare className="h-4 w-4" /> {t("common.notifications")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {NOTIFICATION_TOGGLES.map(({ key, label }) => (
+            {NOTIFICATION_TOGGLES.map(({ key, labelKey }) => (
               <div
                 key={key}
                 className="flex items-center justify-between rounded-md border px-3 py-2"
               >
-                <span className="text-sm">{label}</span>
+                <span className="text-sm">{t(labelKey)}</span>
                 <Toggle
-                  label={label}
+                  label={t(labelKey)}
                   disabled={!canManage}
                   checked={notifications[key] ?? false}
                   onChange={(v) =>
@@ -291,7 +292,9 @@ export default function SettingsPage() {
                 disabled={saveSettings.isPending}
                 onClick={() => saveSettings.mutate()}
               >
-                {saveSettings.isPending ? "Saving…" : "Save notifications"}
+                {saveSettings.isPending
+                  ? t("common.saving")
+                  : t("settingsPage.saveNotifications")}
               </Button>
             )}
           </CardContent>
@@ -300,27 +303,27 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Plug className="h-4 w-4" /> Social accounts
+              <Plug className="h-4 w-4" /> {t("settingsPage.socialAccounts")}
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="space-y-1.5">
-              <Label>Instagram account ID</Label>
+              <Label>{t("settingsPage.instagramAccountId")}</Label>
               <Input
                 value={social.instagramAccountId ?? ""}
                 disabled={!canManage}
-                placeholder="IG business account ID"
+                placeholder={t("settingsPage.instagramAccountIdPlaceholder")}
                 onChange={(e) =>
                   setSocial({ ...social, instagramAccountId: e.target.value })
                 }
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Facebook page ID</Label>
+              <Label>{t("settingsPage.facebookPageId")}</Label>
               <Input
                 value={social.facebookPageId ?? ""}
                 disabled={!canManage}
-                placeholder="FB page ID"
+                placeholder={t("settingsPage.facebookPageIdPlaceholder")}
                 onChange={(e) =>
                   setSocial({ ...social, facebookPageId: e.target.value })
                 }
@@ -331,11 +334,13 @@ export default function SettingsPage() {
                 disabled={saveSettings.isPending}
                 onClick={() => saveSettings.mutate()}
               >
-                {saveSettings.isPending ? "Saving…" : "Save social config"}
+                {saveSettings.isPending
+                  ? t("common.saving")
+                  : t("settingsPage.saveSocial")}
               </Button>
             )}
             <p className="text-xs text-muted-foreground">
-              Stored in company settings via PATCH /company.
+              {t("settingsPage.socialStoredHint")}
             </p>
           </CardContent>
         </Card>
@@ -343,31 +348,34 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" /> Message templates
+              <MessageSquare className="h-4 w-4" />{" "}
+              {t("settingsPage.messageTemplates")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {(templates.data ?? []).map((t) => (
+            {(templates.data ?? []).map((tpl) => (
               <div
-                key={t.id}
+                key={tpl.id}
                 className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
               >
-                <span>{t.name}</span>
-                {t.channel && (
+                <span>{tpl.name}</span>
+                {tpl.channel && (
                   <span className="text-xs text-muted-foreground">
-                    {t.channel}
+                    {tpl.channel}
                   </span>
                 )}
               </div>
             ))}
             {(!templates.data || templates.data.length === 0) && (
-              <p className="text-sm text-muted-foreground">No templates yet.</p>
+              <p className="text-sm text-muted-foreground">
+                {t("settingsPage.noTemplates")}
+              </p>
             )}
             <Link
               href="/communication"
               className="inline-block pt-1 text-sm text-primary hover:underline"
             >
-              Manage in Communication →
+              {t("settingsPage.manageInCommunication")}
             </Link>
           </CardContent>
         </Card>
@@ -435,7 +443,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" /> Administration
+              <ShieldCheck className="h-4 w-4" /> {t("settingsPage.administration")}
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
@@ -443,19 +451,19 @@ export default function SettingsPage() {
               href="/settings/users"
               className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent"
             >
-              <Users className="h-4 w-4" /> Users & roles
+              <Users className="h-4 w-4" /> {t("nav.users")}
             </Link>
             <Link
               href="/settings/branches"
               className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent"
             >
-              <Network className="h-4 w-4" /> Branch management
+              <Network className="h-4 w-4" /> {t("page.branches.title")}
             </Link>
             <Link
               href="/settings/audit"
               className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent"
             >
-              <ShieldCheck className="h-4 w-4" /> Audit trail
+              <ShieldCheck className="h-4 w-4" /> {t("nav.audit")}
             </Link>
           </CardContent>
         </Card>

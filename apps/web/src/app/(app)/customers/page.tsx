@@ -27,10 +27,12 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
 import { formatCurrency } from "@/lib/utils";
 import {
   CustomerSegment,
   Permission,
+  regionLabel,
   type CustomerDto,
   type Paginated,
 } from "@reos/shared";
@@ -38,6 +40,8 @@ import { CustomerDialog } from "./customer-dialog";
 
 export default function CustomersPage() {
   const router = useRouter();
+  const t = useT();
+  const e = useEnumLabel();
   const { can } = useAuth();
   const [segment, setSegment] = useState("ALL");
   const [search, setSearch] = useState("");
@@ -65,7 +69,7 @@ export default function CustomersPage() {
             <ExportCsvButton resource="customers" />
             {canManage && (
               <Button onClick={() => setCreating(true)}>
-                <Plus className="mr-1.5 h-4 w-4" /> New customer
+                <Plus className="mr-1.5 h-4 w-4" /> {t("customers.newCustomer")}
               </Button>
             )}
           </>
@@ -73,9 +77,9 @@ export default function CustomersPage() {
       />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Input
-          placeholder="Search name or phone…"
+          placeholder={t("customers.searchPlaceholder")}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(ev) => setSearch(ev.target.value)}
           className="max-w-xs"
         />
         <Select value={segment} onValueChange={setSegment}>
@@ -83,10 +87,10 @@ export default function CustomersPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All segments</SelectItem>
+            <SelectItem value="ALL">{t("customers.allSegments")}</SelectItem>
             {Object.values(CustomerSegment).map((s) => (
               <SelectItem key={s} value={s}>
-                {s}
+                {e("status", s)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -97,13 +101,13 @@ export default function CustomersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Intent</TableHead>
-              <TableHead>Budget</TableHead>
-              <TableHead>Regions</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Segment</TableHead>
+              <TableHead>{t("common.name")}</TableHead>
+              <TableHead>{t("common.phone")}</TableHead>
+              <TableHead>{t("customers.intent")}</TableHead>
+              <TableHead>{t("customers.budget")}</TableHead>
+              <TableHead>{t("customers.regions")}</TableHead>
+              <TableHead>{t("customers.type")}</TableHead>
+              <TableHead>{t("customers.segment")}</TableHead>
               {canManage && <TableHead className="w-12" />}
             </TableRow>
           </TableHeader>
@@ -117,16 +121,16 @@ export default function CustomersPage() {
                 <TableCell className="font-medium">{c.fullName}</TableCell>
                 <TableCell className="font-mono text-xs">{c.phone}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {c.intent}
+                  {e("customerIntent", c.intent)}
                 </TableCell>
                 <TableCell>
                   {formatCurrency(c.budgetMin)} – {formatCurrency(c.budgetMax)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {c.preferredRegions.join(", ")}
+                  {c.preferredRegions.map(regionLabel).join(", ")}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {c.propertyType ?? "—"}
+                  {c.propertyType ? e("propertyType", c.propertyType) : "—"}
                 </TableCell>
                 <TableCell>
                   <StatusBadge value={c.segment} />
@@ -137,8 +141,8 @@ export default function CustomersPage() {
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
+                      onClick={(ev) => {
+                        ev.stopPropagation();
                         setEditing(c);
                       }}
                     >
@@ -154,7 +158,7 @@ export default function CustomersPage() {
                   colSpan={canManage ? 8 : 7}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading…
+                  {t("customers.loading")}
                 </TableCell>
               </TableRow>
             )}

@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { relativeTime } from "@/lib/utils";
+import { useT } from "@/lib/i18n/locale-context";
+import type { MessageKey } from "@/lib/i18n/messages";
 import type { AuditLogDto, Paginated } from "@reos/shared";
 
 function JsonCell({ value }: { value: Record<string, unknown> | null }) {
@@ -28,10 +30,18 @@ function JsonCell({ value }: { value: Record<string, unknown> | null }) {
 }
 
 export default function AuditPage() {
+  const t = useT();
   const { data } = useQuery({
     queryKey: ["audit"],
     queryFn: () => api.get<Paginated<AuditLogDto>>("/audit?pageSize=80"),
   });
+
+  // Known actions get a translated label; anything else shows the raw value.
+  const actionLabel = (action: string) => {
+    const key = `audit.actionLabel.${action}` as MessageKey;
+    const label = t(key);
+    return label === key ? action : label;
+  };
 
   return (
     <div>
@@ -43,19 +53,19 @@ export default function AuditPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Action</TableHead>
-              <TableHead>Entity</TableHead>
-              <TableHead>Before</TableHead>
-              <TableHead>After</TableHead>
-              <TableHead>Actor</TableHead>
-              <TableHead>When</TableHead>
+              <TableHead>{t("audit.action")}</TableHead>
+              <TableHead>{t("audit.entity")}</TableHead>
+              <TableHead>{t("audit.before")}</TableHead>
+              <TableHead>{t("audit.after")}</TableHead>
+              <TableHead>{t("audit.actor")}</TableHead>
+              <TableHead>{t("audit.when")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data?.data.map((row) => (
               <TableRow key={row.id}>
                 <TableCell>
-                  <Badge variant="secondary">{row.action}</Badge>
+                  <Badge variant="secondary">{actionLabel(row.action)}</Badge>
                 </TableCell>
                 <TableCell className="font-mono text-xs">
                   {row.entity}
@@ -68,7 +78,7 @@ export default function AuditPage() {
                   <JsonCell value={row.after} />
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {row.actorEmail ?? "system"}
+                  {row.actorEmail ?? t("audit.system")}
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-muted-foreground">
                   {relativeTime(row.createdAt)}
@@ -81,7 +91,7 @@ export default function AuditPage() {
                   colSpan={6}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No audit records.
+                  {t("audit.empty")}
                 </TableCell>
               </TableRow>
             )}

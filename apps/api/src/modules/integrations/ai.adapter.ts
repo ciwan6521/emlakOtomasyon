@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Locale, LOCALE_LABELS } from "@reos/shared";
+import { Locale, LOCALE_LABELS, Region, regionLabel } from "@reos/shared";
 
 export interface ListingContext {
   title: string;
@@ -91,15 +91,38 @@ export class AiAdapter {
     type: string;
     sizeM2: number;
   }): Promise<{ suggested: number; rationale: string }> {
-    const base: Record<string, number> = {
-      BUDVA: 3200,
-      KOTOR: 3000,
-      TIVAT: 3500,
-      BAR: 2200,
-      HERCEG_NOVI: 2400,
-      PODGORICA: 1800,
+    // Indicative asking prices per m² across Podgorica; central districts
+    // command a premium, outlying villages trade well below the city average.
+    const base: Partial<Record<Region, number>> = {
+      [Region.CENTAR]: 2600,
+      [Region.PREKO_MORACE]: 2500,
+      [Region.CITY_KVART]: 2400,
+      [Region.NOVA_VAROS]: 2300,
+      [Region.GORICA]: 2300,
+      [Region.LJUBOVIC]: 2200,
+      [Region.KRUSEVAC]: 2200,
+      [Region.STARA_VAROS]: 2000,
+      [Region.BLOK_V]: 2000,
+      [Region.BLOK_VI]: 1950,
+      [Region.BLOK_IX]: 1900,
+      [Region.STARI_AERODROM]: 1900,
+      [Region.MOMISICI]: 1900,
+      [Region.DAHNA]: 1850,
+      [Region.MALO_BRDO]: 1800,
+      [Region.ZABJELO]: 1750,
+      [Region.TOLOSI]: 1700,
+      [Region.ZAGORIC]: 1650,
+      [Region.MASLINE]: 1650,
+      [Region.DRAC]: 1600,
+      [Region.ZLATICA]: 1550,
+      [Region.POBREZJE]: 1500,
+      [Region.DONJA_GORICA]: 1500,
+      [Region.KONIK]: 1300,
+      [Region.VRELA_RIBNICKA]: 1300,
+      [Region.TUZI]: 1200,
+      [Region.GOLUBOVCI]: 1150,
     };
-    const perM2 = base[ctx.region] ?? 2000;
+    const perM2 = base[ctx.region as Region] ?? 1400;
     const suggested = Math.round(perM2 * ctx.sizeM2);
     return {
       suggested,
@@ -179,12 +202,17 @@ const SIM_TEMPLATES: Record<Locale, (c: ListingContext) => string> = {
     `Svijetao ${c.type.toLowerCase()} ${c.rooms}, ${c.sizeM2} m² u ${cap(c.region)}. Odlična lokacija, useljivo odmah. Cijena: ${fmt(c.price, c.currency)}.`,
 };
 
-const cap = (s: string) =>
-  s.charAt(0) + s.slice(1).toLowerCase().replace(/_/g, " ");
+const cap = (s: string) => regionLabel(s) || s;
 const hashtags = (c: ListingContext) =>
   [
+    "#podgorica",
     "#montenegro",
-    `#${c.region.toLowerCase().replace(/_/g, "")}`,
+    `#${regionLabel(c.region)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/gi, "d")
+      .replace(/[^a-z0-9]/gi, "")
+      .toLowerCase()}`,
     `#${c.type.toLowerCase()}`,
     "#realestate",
     "#nekretnine",

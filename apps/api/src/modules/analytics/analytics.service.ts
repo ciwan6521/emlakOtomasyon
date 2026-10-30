@@ -490,49 +490,53 @@ export class AnalyticsService {
 
   async regions(): Promise<RegionPerformance[]> {
     const companyId = TenantStore.companyId();
-    const regions = Object.values(Region);
-    return Promise.all(
-      regions.map(async (region) => {
-        const [activeListings, sold, priceAgg, revenueAgg] = await Promise.all([
-          this.prisma.property.count({
-            where: {
-              companyId,
-              region,
-              status: PropertyStatus.ACTIVE_LISTING,
-              deletedAt: null,
-            },
-          }),
-          this.prisma.property.count({
-            where: {
-              companyId,
-              region,
-              status: { in: [PropertyStatus.SOLD, PropertyStatus.RENTED] },
-              deletedAt: null,
-            },
-          }),
-          this.prisma.property.aggregate({
-            where: { companyId, region, deletedAt: null },
-            _avg: { price: true },
-          }),
-          this.prisma.property.aggregate({
-            where: {
-              companyId,
-              region,
-              status: PropertyStatus.SOLD,
-              deletedAt: null,
-            },
-            _sum: { price: true },
-          }),
-        ]);
-        return {
-          region,
-          activeListings,
-          sold,
-          avgPrice: Math.round(Number(priceAgg._avg?.price ?? 0)),
-          revenue: Number(revenueAgg._sum?.price ?? 0),
-        };
+    // Two grouped queries instead of four per district: one for the overall
+    // average price, one per (district, status) for counts and sold revenue.
+    const [avgByRegion, byStatus] = await Promise.all([
+      this.prisma.property.groupBy({
+        by: ["region"],
+        where: { companyId, deletedAt: null },
+        _avg: { price: true },
       }),
-    ).then((rows) => rows.filter((r) => r.activeListings > 0 || r.sold > 0));
+      this.prisma.property.groupBy({
+        by: ["region", "status"],
+        where: { companyId, deletedAt: null },
+        _count: { _all: true },
+        _sum: { price: true },
+      }),
+    ]);
+
+    const rows = new Map<Region, RegionPerformance>();
+    const row = (region: Region): RegionPerformance => {
+      let r = rows.get(region);
+      if (!r) {
+        r = { region, activeListings: 0, sold: 0, avgPrice: 0, revenue: 0 };
+        rows.set(region, r);
+      }
+      return r;
+    };
+    for (const g of avgByRegion) {
+      row(g.region as Region).avgPrice = Math.round(
+        Number(g._avg?.price ?? 0),
+      );
+    }
+    for (const g of byStatus) {
+      const r = row(g.region as Region);
+      const count = g._count._all;
+      if (g.status === PropertyStatus.ACTIVE_LISTING) r.activeListings += count;
+      if (
+        g.status === PropertyStatus.SOLD ||
+        g.status === PropertyStatus.RENTED
+      )
+        r.sold += count;
+      if (g.status === PropertyStatus.SOLD)
+        r.revenue += Number(g._sum?.price ?? 0);
+    }
+
+    const order = Object.values(Region);
+    return [...rows.values()]
+      .filter((r) => r.activeListings > 0 || r.sold > 0)
+      .sort((a, b) => order.indexOf(a.region) - order.indexOf(b.region));
   }
 
   async report(range: ReportRange): Promise<ReportSummary> {

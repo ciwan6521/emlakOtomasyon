@@ -24,8 +24,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
+import { useT } from "@/lib/i18n/locale-context";
 import { formatCurrency } from "@/lib/utils";
-import type { AgentPerformance, RegionPerformance } from "@reos/shared";
+import {
+  regionLabel,
+  type AgentPerformance,
+  type RegionPerformance,
+} from "@reos/shared";
 
 const COLORS = [
   "#3b82f6",
@@ -38,6 +43,7 @@ const COLORS = [
 ];
 
 export default function AnalyticsPage() {
+  const t = useT();
   const agents = useQuery({
     queryKey: ["analytics", "agents"],
     queryFn: () => api.get<AgentPerformance[]>("/analytics/agents"),
@@ -46,6 +52,10 @@ export default function AnalyticsPage() {
     queryKey: ["analytics", "regions"],
     queryFn: () => api.get<RegionPerformance[]>("/analytics/regions"),
   });
+  const regionPie = (regions.data ?? []).map((r) => ({
+    ...r,
+    regionName: regionLabel(r.region),
+  }));
 
   return (
     <div>
@@ -56,7 +66,7 @@ export default function AnalyticsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Agent conversion</CardTitle>
+            <CardTitle>{t("analytics.agentConversion")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -94,6 +104,7 @@ export default function AnalyticsPage() {
                 />
                 <Bar
                   dataKey="conversionRate"
+                  name={t("analytics.conversionRate")}
                   fill="hsl(var(--primary))"
                   radius={[0, 4, 4, 0]}
                 />
@@ -104,21 +115,21 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Active listings by region</CardTitle>
+            <CardTitle>{t("analytics.activeListingsByRegion")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={regions.data ?? []}
+                  data={regionPie}
                   dataKey="activeListings"
-                  nameKey="region"
+                  nameKey="regionName"
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
                   label
                 >
-                  {(regions.data ?? []).map((_, i) => (
+                  {regionPie.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
@@ -138,23 +149,25 @@ export default function AnalyticsPage() {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Regional performance</CardTitle>
+          <CardTitle>{t("analytics.regionalPerformance")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Region</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead>Sold</TableHead>
-                <TableHead>Avg price</TableHead>
-                <TableHead>Revenue</TableHead>
+                <TableHead>{t("analytics.region")}</TableHead>
+                <TableHead>{t("analytics.active")}</TableHead>
+                <TableHead>{t("analytics.sold")}</TableHead>
+                <TableHead>{t("analytics.avgPrice")}</TableHead>
+                <TableHead>{t("analytics.revenue")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {regions.data?.map((r) => (
                 <TableRow key={r.region}>
-                  <TableCell className="font-medium">{r.region}</TableCell>
+                  <TableCell className="font-medium">
+                    {regionLabel(r.region)}
+                  </TableCell>
                   <TableCell>{r.activeListings}</TableCell>
                   <TableCell>{r.sold}</TableCell>
                   <TableCell>{formatCurrency(r.avgPrice)}</TableCell>

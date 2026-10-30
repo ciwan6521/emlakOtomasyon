@@ -35,7 +35,9 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
 import { initials } from "@/lib/utils";
-import { Permission, ROLE_LABELS, Role } from "@reos/shared";
+import { useT } from "@/lib/i18n/locale-context";
+import { ROLE_LABEL_KEYS } from "@/lib/i18n/packs/settings";
+import { Permission, Role } from "@reos/shared";
 
 interface UserRow {
   id: string;
@@ -57,6 +59,7 @@ const EMPTY_FORM = {
 export default function UsersPage() {
   const { can } = useAuth();
   const qc = useQueryClient();
+  const t = useT();
   const canManage = can(Permission.USER_MANAGE);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<UserRow | null>(null);
@@ -133,7 +136,7 @@ export default function UsersPage() {
         action={
           canManage && (
             <Button onClick={openCreate}>
-              <Plus className="mr-1.5 h-4 w-4" /> New user
+              <Plus className="mr-1.5 h-4 w-4" /> {t("users.new")}
             </Button>
           )
         }
@@ -142,11 +145,11 @@ export default function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Roles</TableHead>
-              <TableHead>Branch</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{t("common.name")}</TableHead>
+              <TableHead>{t("common.email")}</TableHead>
+              <TableHead>{t("users.roles")}</TableHead>
+              <TableHead>{t("users.branch")}</TableHead>
+              <TableHead>{t("common.status")}</TableHead>
               {canManage && <TableHead />}
             </TableRow>
           </TableHeader>
@@ -168,7 +171,7 @@ export default function UsersPage() {
                   <div className="flex flex-wrap gap-1">
                     {u.roles.map((r) => (
                       <Badge key={r} variant="secondary">
-                        {ROLE_LABELS[r]}
+                        {t(ROLE_LABEL_KEYS[r])}
                       </Badge>
                     ))}
                   </div>
@@ -178,9 +181,9 @@ export default function UsersPage() {
                 </TableCell>
                 <TableCell>
                   {u.isActive ? (
-                    <Badge variant="success">active</Badge>
+                    <Badge variant="success">{t("users.active")}</Badge>
                   ) : (
-                    <Badge variant="destructive">inactive</Badge>
+                    <Badge variant="destructive">{t("users.inactive")}</Badge>
                   )}
                 </TableCell>
                 {canManage && (
@@ -199,7 +202,13 @@ export default function UsersPage() {
                         variant="ghost"
                         className="h-8 w-8 text-destructive"
                         onClick={() => {
-                          if (confirm(`Deactivate ${u.fullName}?`))
+                          if (
+                            confirm(
+                              t("users.confirmDeactivate", {
+                                name: u.fullName,
+                              }),
+                            )
+                          )
                             remove.mutate(u.id);
                         }}
                       >
@@ -216,7 +225,7 @@ export default function UsersPage() {
                   colSpan={canManage ? 6 : 5}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No users found.
+                  {t("users.empty")}
                 </TableCell>
               </TableRow>
             )}
@@ -227,12 +236,14 @@ export default function UsersPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit user" : "Create user"}</DialogTitle>
+            <DialogTitle>
+              {editing ? t("users.edit") : t("users.create")}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             {!editing && (
               <div className="space-y-1.5">
-                <Label>Email</Label>
+                <Label>{t("common.email")}</Label>
                 <Input
                   type="email"
                   value={form.email}
@@ -241,14 +252,18 @@ export default function UsersPage() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>Full name</Label>
+              <Label>{t("users.fullName")}</Label>
               <Input
                 value={form.fullName}
                 onChange={(e) => setForm({ ...form, fullName: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>{editing ? "New password (optional)" : "Password"}</Label>
+              <Label>
+                {editing
+                  ? t("users.newPasswordOptional")
+                  : t("login.password")}
+              </Label>
               <Input
                 type="password"
                 value={form.password}
@@ -256,7 +271,7 @@ export default function UsersPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Roles</Label>
+              <Label>{t("users.roles")}</Label>
               <div className="flex flex-wrap gap-2">
                 {Object.values(Role).map((r) => (
                   <Button
@@ -266,14 +281,14 @@ export default function UsersPage() {
                     variant={form.roles.includes(r) ? "default" : "outline"}
                     onClick={() => toggleRole(r)}
                   >
-                    {ROLE_LABELS[r]}
+                    {t(ROLE_LABEL_KEYS[r])}
                   </Button>
                 ))}
               </div>
             </div>
             {editing && (
               <div className="space-y-1.5">
-                <Label>Status</Label>
+                <Label>{t("common.status")}</Label>
                 <Select
                   value={form.isActive ? "active" : "inactive"}
                   onValueChange={(v) =>
@@ -284,8 +299,10 @@ export default function UsersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="active">{t("users.active")}</SelectItem>
+                    <SelectItem value="inactive">
+                      {t("users.inactive")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -293,7 +310,7 @@ export default function UsersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={
@@ -304,7 +321,11 @@ export default function UsersPage() {
               }
               onClick={() => save.mutate()}
             >
-              {save.isPending ? "Saving…" : editing ? "Update" : "Create"}
+              {save.isPending
+                ? t("common.saving")
+                : editing
+                  ? t("common.update")
+                  : t("common.create")}
             </Button>
           </DialogFooter>
         </DialogContent>

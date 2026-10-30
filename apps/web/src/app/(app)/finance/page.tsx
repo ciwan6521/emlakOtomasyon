@@ -24,6 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   CommissionStatus,
@@ -48,6 +49,8 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 }
 
 export default function FinancePage() {
+  const t = useT();
+  const e = useEnumLabel();
   const { can } = useAuth();
   const qc = useQueryClient();
   const [creatingInvoice, setCreatingInvoice] = useState(false);
@@ -89,27 +92,31 @@ export default function FinancePage() {
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
-          label="Commission (pending)"
+          label={t("finance.kpi.commissionPending")}
           value={formatCurrency(summary?.commissionPending ?? 0)}
         />
         <SummaryCard
-          label="Commission (paid)"
+          label={t("finance.kpi.commissionPaid")}
           value={formatCurrency(summary?.commissionPaid ?? 0)}
         />
         <SummaryCard
-          label="Invoice (open)"
+          label={t("finance.kpi.invoiceOpen")}
           value={formatCurrency(summary?.invoiceOutstanding ?? 0)}
         />
         <SummaryCard
-          label="Invoice (paid)"
+          label={t("finance.kpi.invoicePaid")}
           value={formatCurrency(summary?.invoicePaid ?? 0)}
         />
       </div>
 
       <Tabs defaultValue="commissions">
         <TabsList>
-          <TabsTrigger value="commissions">Commissions</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          <TabsTrigger value="commissions">
+            {t("finance.tabs.commissions")}
+          </TabsTrigger>
+          <TabsTrigger value="invoices">
+            {t("finance.tabs.invoices")}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="commissions">
@@ -117,12 +124,12 @@ export default function FinancePage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Deal</TableHead>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Base</TableHead>
-                  <TableHead>Rate</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("finance.col.deal")}</TableHead>
+                  <TableHead>{t("finance.col.agent")}</TableHead>
+                  <TableHead>{t("finance.col.base")}</TableHead>
+                  <TableHead>{t("finance.col.rate")}</TableHead>
+                  <TableHead>{t("finance.col.amount")}</TableHead>
+                  <TableHead>{t("common.status")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -158,13 +165,13 @@ export default function FinancePage() {
                           <SelectContent>
                             {Object.values(CommissionStatus).map((s) => (
                               <SelectItem key={s} value={s}>
-                                {s}
+                                {e("status", s)}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       ) : (
-                        c.status
+                        e("status", c.status)
                       )}
                     </TableCell>
                   </TableRow>
@@ -175,7 +182,7 @@ export default function FinancePage() {
                       colSpan={6}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      No commissions yet.
+                      {t("finance.noCommissions")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -188,7 +195,7 @@ export default function FinancePage() {
           <div className="mb-3 flex justify-end">
             {canManageInv && (
               <Button size="sm" onClick={() => setCreatingInvoice(true)}>
-                <Plus className="mr-1.5 h-4 w-4" /> New invoice
+                <Plus className="mr-1.5 h-4 w-4" /> {t("finance.newInvoice")}
               </Button>
             )}
           </div>
@@ -196,11 +203,11 @@ export default function FinancePage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Number</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Issued</TableHead>
-                  <TableHead>Due</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("finance.col.number")}</TableHead>
+                  <TableHead>{t("finance.col.amount")}</TableHead>
+                  <TableHead>{t("finance.col.issued")}</TableHead>
+                  <TableHead>{t("finance.col.due")}</TableHead>
+                  <TableHead>{t("common.status")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -235,13 +242,13 @@ export default function FinancePage() {
                           <SelectContent>
                             {Object.values(InvoiceStatus).map((s) => (
                               <SelectItem key={s} value={s}>
-                                {s}
+                                {e("status", s)}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       ) : (
-                        i.status
+                        e("status", i.status)
                       )}
                     </TableCell>
                   </TableRow>
@@ -252,7 +259,7 @@ export default function FinancePage() {
                       colSpan={5}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      No invoices yet.
+                      {t("finance.noInvoices")}
                     </TableCell>
                   </TableRow>
                 )}

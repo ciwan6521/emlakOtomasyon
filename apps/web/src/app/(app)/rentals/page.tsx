@@ -36,10 +36,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   AvailabilityKind,
-  LEASE_STATUS_LABELS,
   LeaseStatus,
   ListingPurpose,
   MaintenancePriority,
@@ -47,7 +47,6 @@ import {
   PaymentMethod,
   Permission,
   PayoutStatus,
-  RENTAL_PIPELINE_LABELS,
   RentalPipelineStage,
   RentPaymentStatus,
   type CustomerDto,
@@ -115,14 +114,6 @@ const LEASE_STATUS_VARIANT: Record<LeaseStatus, BadgeProps["variant"]> = {
   [LeaseStatus.TERMINATED]: "destructive",
 };
 
-const PAYMENT_STATUS_LABEL: Record<RentPaymentStatus, string> = {
-  [RentPaymentStatus.PENDING]: "Bekliyor",
-  [RentPaymentStatus.PAID]: "Paid",
-  [RentPaymentStatus.OVERDUE]: "Overdue",
-  [RentPaymentStatus.PARTIAL]: "Partial",
-  [RentPaymentStatus.WAIVED]: "Muaf",
-};
-
 const PAYMENT_STATUS_VARIANT: Record<RentPaymentStatus, BadgeProps["variant"]> =
   {
     [RentPaymentStatus.PENDING]: "warning",
@@ -131,33 +122,6 @@ const PAYMENT_STATUS_VARIANT: Record<RentPaymentStatus, BadgeProps["variant"]> =
     [RentPaymentStatus.PARTIAL]: "warning",
     [RentPaymentStatus.WAIVED]: "secondary",
   };
-
-const PAYOUT_STATUS_LABEL: Record<PayoutStatus, string> = {
-  [PayoutStatus.PENDING]: "Bekliyor",
-  [PayoutStatus.PAID]: "Paid",
-  [PayoutStatus.CANCELLED]: "Cancelled",
-};
-
-const MAINTENANCE_PRIORITY_LABEL: Record<MaintenancePriority, string> = {
-  [MaintenancePriority.LOW]: "Low",
-  [MaintenancePriority.MEDIUM]: "Orta",
-  [MaintenancePriority.HIGH]: "High",
-  [MaintenancePriority.URGENT]: "Acil",
-};
-
-const AVAILABILITY_KIND_LABEL: Record<AvailabilityKind, string> = {
-  [AvailabilityKind.BOOKED]: "Rezerve",
-  [AvailabilityKind.BLOCKED]: "Blocked",
-  [AvailabilityKind.OWNER_USE]: "Owner use",
-  [AvailabilityKind.LEASE]: "Long-term lease",
-};
-
-const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
-  [PaymentMethod.CASH]: "Nakit",
-  [PaymentMethod.BANK_TRANSFER]: "Banka havalesi",
-  [PaymentMethod.CARD]: "Kart",
-  [PaymentMethod.OTHER]: "Other",
-};
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
@@ -171,9 +135,10 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 }
 
 function LeaseStatusBadge({ status }: { status: LeaseStatus }) {
+  const e = useEnumLabel();
   return (
     <Badge variant={LEASE_STATUS_VARIANT[status] ?? "secondary"}>
-      {LEASE_STATUS_LABELS[status]}
+      {e("status", status)}
     </Badge>
   );
 }
@@ -247,6 +212,8 @@ const EMPTY_AVAILABILITY: AvailabilityForm = {
 };
 
 export default function RentalsPage() {
+  const t = useT();
+  const e = useEnumLabel();
   const { can } = useAuth();
   const qc = useQueryClient();
   const canManage = can(Permission.RENTAL_MANAGE);
@@ -554,7 +521,7 @@ export default function RentalsPage() {
         action={
           canManage && (
             <Button onClick={() => setCreatingLease(true)}>
-              <Plus className="mr-1.5 h-4 w-4" /> New lease
+              <Plus className="mr-1.5 h-4 w-4" /> {t("rentals.newLease")}
             </Button>
           )
         }
@@ -562,47 +529,55 @@ export default function RentalsPage() {
 
       <Tabs defaultValue="overview">
         <TabsList className="mb-4 flex h-auto flex-wrap gap-1">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="leases">Leases</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="payouts">Owner payouts</TabsTrigger>
-          <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar (STR)</TabsTrigger>
+          <TabsTrigger value="overview">
+            {t("rentals.tabs.overview")}
+          </TabsTrigger>
+          <TabsTrigger value="leases">{t("rentals.tabs.leases")}</TabsTrigger>
+          <TabsTrigger value="payments">
+            {t("rentals.tabs.payments")}
+          </TabsTrigger>
+          <TabsTrigger value="payouts">{t("rentals.tabs.payouts")}</TabsTrigger>
+          <TabsTrigger value="maintenance">
+            {t("rentals.tabs.maintenance")}
+          </TabsTrigger>
+          <TabsTrigger value="calendar">
+            {t("rentals.tabs.calendar")}
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Overview ── */}
         <TabsContent value="overview">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <SummaryCard
-              label="Active leases"
+              label={t("rentals.kpi.activeLeases")}
               value={String(overview?.activeLeases ?? "—")}
             />
             <SummaryCard
-              label="Pending applications"
+              label={t("rentals.kpi.pendingApplications")}
               value={String(overview?.pendingApplications ?? "—")}
             />
             <SummaryCard
-              label="Overdue payments"
+              label={t("rentals.kpi.overduePayments")}
               value={String(overview?.overduePayments ?? "—")}
             />
             <SummaryCard
-              label="Expiring in 30 days"
+              label={t("rentals.kpi.expiring30")}
               value={String(overview?.expiringLeases ?? "—")}
             />
             <SummaryCard
-              label="Open maintenance"
+              label={t("rentals.kpi.openMaintenance")}
               value={String(overview?.openMaintenance ?? "—")}
             />
             <SummaryCard
-              label="Occupied rentals"
+              label={t("rentals.kpi.occupiedRentals")}
               value={String(overview?.occupiedRentals ?? "—")}
             />
             <SummaryCard
-              label="Collected this month"
+              label={t("rentals.kpi.collectedThisMonth")}
               value={formatCurrency(overview?.monthlyRentCollected ?? 0)}
             />
             <SummaryCard
-              label="Pending payouts"
+              label={t("rentals.kpi.pendingPayouts")}
               value={String(overview?.pendingPayouts ?? "—")}
             />
           </div>
@@ -616,13 +591,13 @@ export default function RentalsPage() {
               onValueChange={setLeaseStatusFilter}
             >
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder={t("rentals.filterByStatus")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All statuses</SelectItem>
+                <SelectItem value="ALL">{t("rentals.allStatuses")}</SelectItem>
                 {Object.values(LeaseStatus).map((s) => (
                   <SelectItem key={s} value={s}>
-                    {LEASE_STATUS_LABELS[s]}
+                    {e("status", s)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -632,12 +607,12 @@ export default function RentalsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Tenant</TableHead>
-                  <TableHead>Period</TableHead>
-                  <TableHead>Rent</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Stage</TableHead>
+                  <TableHead>{t("rentals.col.property")}</TableHead>
+                  <TableHead>{t("rentals.col.tenant")}</TableHead>
+                  <TableHead>{t("rentals.col.period")}</TableHead>
+                  <TableHead>{t("rentals.col.rent")}</TableHead>
+                  <TableHead>{t("common.status")}</TableHead>
+                  <TableHead>{t("rentals.col.stage")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -676,7 +651,7 @@ export default function RentalsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {RENTAL_PIPELINE_LABELS[l.pipelineStage]}
+                        {e("status", l.pipelineStage)}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -687,7 +662,7 @@ export default function RentalsPage() {
                       colSpan={6}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      Loading…
+                      {t("rentals.loading")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -697,7 +672,7 @@ export default function RentalsPage() {
                       colSpan={6}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      No leases yet.
+                      {t("rentals.noLeases")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -718,13 +693,15 @@ export default function RentalsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={RentPaymentStatus.OVERDUE}>
-                  Overdue
+                  {e("status", RentPaymentStatus.OVERDUE)}
                 </SelectItem>
                 <SelectItem value={RentPaymentStatus.PENDING}>
-                  Pending
+                  {e("status", RentPaymentStatus.PENDING)}
                 </SelectItem>
-                <SelectItem value="ALL">All</SelectItem>
-                <SelectItem value={RentPaymentStatus.PAID}>Paid</SelectItem>
+                <SelectItem value="ALL">{t("common.all")}</SelectItem>
+                <SelectItem value={RentPaymentStatus.PAID}>
+                  {e("status", RentPaymentStatus.PAID)}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -732,12 +709,12 @@ export default function RentalsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Tenant</TableHead>
-                  <TableHead>Due</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Paid</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("rentals.col.property")}</TableHead>
+                  <TableHead>{t("rentals.col.tenant")}</TableHead>
+                  <TableHead>{t("rentals.col.due")}</TableHead>
+                  <TableHead>{t("rentals.col.amount")}</TableHead>
+                  <TableHead>{t("rentals.col.paid")}</TableHead>
+                  <TableHead>{t("common.status")}</TableHead>
                   {canManage && <TableHead className="w-28" />}
                 </TableRow>
               </TableHeader>
@@ -759,7 +736,7 @@ export default function RentalsPage() {
                           PAYMENT_STATUS_VARIANT[p.status] ?? "secondary"
                         }
                       >
-                        {PAYMENT_STATUS_LABEL[p.status]}
+                        {e("status", p.status)}
                       </Badge>
                     </TableCell>
                     {canManage && (
@@ -771,7 +748,7 @@ export default function RentalsPage() {
                               variant="outline"
                               onClick={() => setRecordingPayment(p)}
                             >
-                              Save
+                              {t("rentals.recordAction")}
                             </Button>
                           )}
                       </TableCell>
@@ -784,7 +761,7 @@ export default function RentalsPage() {
                       colSpan={canManage ? 7 : 6}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      Loading…
+                      {t("rentals.loading")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -794,7 +771,7 @@ export default function RentalsPage() {
                       colSpan={canManage ? 7 : 6}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      No records found.
+                      {t("rentals.noRecords")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -808,7 +785,7 @@ export default function RentalsPage() {
           <div className="mb-3 flex justify-end">
             {canManage && (
               <Button size="sm" onClick={() => setCreatingPayout(true)}>
-                <Plus className="mr-1.5 h-4 w-4" /> New payout
+                <Plus className="mr-1.5 h-4 w-4" /> {t("rentals.newPayout")}
               </Button>
             )}
           </div>
@@ -816,12 +793,12 @@ export default function RentalsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Period</TableHead>
-                  <TableHead>Gross</TableHead>
-                  <TableHead>Net</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("rentals.col.property")}</TableHead>
+                  <TableHead>{t("rentals.col.owner")}</TableHead>
+                  <TableHead>{t("rentals.col.period")}</TableHead>
+                  <TableHead>{t("rentals.col.gross")}</TableHead>
+                  <TableHead>{t("rentals.col.net")}</TableHead>
+                  <TableHead>{t("common.status")}</TableHead>
                   {canManage && <TableHead className="w-28" />}
                 </TableRow>
               </TableHeader>
@@ -856,7 +833,7 @@ export default function RentalsPage() {
                               : "warning"
                         }
                       >
-                        {PAYOUT_STATUS_LABEL[p.status]}
+                        {e("status", p.status)}
                       </Badge>
                     </TableCell>
                     {canManage && (
@@ -868,7 +845,7 @@ export default function RentalsPage() {
                             disabled={markPayoutPaid.isPending}
                             onClick={() => markPayoutPaid.mutate(p.id)}
                           >
-                            Mark paid
+                            {t("rentals.markPaid")}
                           </Button>
                         )}
                       </TableCell>
@@ -881,7 +858,7 @@ export default function RentalsPage() {
                       colSpan={canManage ? 7 : 6}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      Loading…
+                      {t("rentals.loading")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -891,7 +868,7 @@ export default function RentalsPage() {
                       colSpan={canManage ? 7 : 6}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      No owner payouts yet.
+                      {t("rentals.noPayouts")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -911,17 +888,17 @@ export default function RentalsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All statuses</SelectItem>
+                <SelectItem value="ALL">{t("rentals.allStatuses")}</SelectItem>
                 {Object.values(MaintenanceStatus).map((s) => (
                   <SelectItem key={s} value={s}>
-                    {s.replace(/_/g, " ")}
+                    {e("status", s)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {canManage && (
               <Button size="sm" onClick={() => setCreatingMaintenance(true)}>
-                <Plus className="mr-1.5 h-4 w-4" /> New request
+                <Plus className="mr-1.5 h-4 w-4" /> {t("rentals.newRequest")}
               </Button>
             )}
           </div>
@@ -929,11 +906,11 @@ export default function RentalsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>{t("rentals.col.property")}</TableHead>
+                  <TableHead>{t("rentals.col.title")}</TableHead>
+                  <TableHead>{t("rentals.col.priority")}</TableHead>
+                  <TableHead>{t("common.status")}</TableHead>
+                  <TableHead>{t("common.date")}</TableHead>
                   {canManage && <TableHead className="w-40" />}
                 </TableRow>
               </TableHeader>
@@ -961,7 +938,7 @@ export default function RentalsPage() {
                               : "secondary"
                         }
                       >
-                        {MAINTENANCE_PRIORITY_LABEL[m.priority]}
+                        {e("status", m.priority)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -989,7 +966,7 @@ export default function RentalsPage() {
                               <SelectContent>
                                 {Object.values(MaintenanceStatus).map((s) => (
                                   <SelectItem key={s} value={s}>
-                                    {s.replace(/_/g, " ")}
+                                    {e("status", s)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -1005,7 +982,7 @@ export default function RentalsPage() {
                       colSpan={canManage ? 6 : 5}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      Loading…
+                      {t("rentals.loading")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -1015,7 +992,7 @@ export default function RentalsPage() {
                       colSpan={canManage ? 6 : 5}
                       className="py-10 text-center text-muted-foreground"
                     >
-                      Maintenance talebi yok.
+                      {t("rentals.noMaintenance")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -1034,7 +1011,7 @@ export default function RentalsPage() {
                 onValueChange={setCalendarPropertyId}
               >
                 <SelectTrigger className="w-72">
-                  <SelectValue placeholder="Select property" />
+                  <SelectValue placeholder={t("rentals.selectProperty")} />
                 </SelectTrigger>
                 <SelectContent>
                   {rentalProperties?.data.map((p) => (
@@ -1048,25 +1025,25 @@ export default function RentalsPage() {
             </div>
             {canManage && calendarPropertyId && (
               <Button size="sm" onClick={() => setAddingBlock(true)}>
-                <Plus className="mr-1.5 h-4 w-4" /> Blok ekle
+                <Plus className="mr-1.5 h-4 w-4" /> {t("rentals.addBlock")}
               </Button>
             )}
           </div>
 
           {!calendarPropertyId ? (
             <Card className="p-10 text-center text-muted-foreground">
-              No rental listings found.
+              {t("rentals.noRentalListings")}
             </Card>
           ) : (
             <Card>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Start</TableHead>
-                    <TableHead>End</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Kaynak</TableHead>
-                    <TableHead>Not</TableHead>
+                    <TableHead>{t("rentals.col.start")}</TableHead>
+                    <TableHead>{t("rentals.col.end")}</TableHead>
+                    <TableHead>{t("rentals.col.type")}</TableHead>
+                    <TableHead>{t("rentals.col.source")}</TableHead>
+                    <TableHead>{t("rentals.col.note")}</TableHead>
                     {canManage && <TableHead className="w-12" />}
                   </TableRow>
                 </TableHeader>
@@ -1077,7 +1054,7 @@ export default function RentalsPage() {
                       <TableCell>{formatDate(b.endDate)}</TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {AVAILABILITY_KIND_LABEL[b.kind] ?? b.kind}
+                          {e("availabilityKind", b.kind)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
@@ -1110,7 +1087,7 @@ export default function RentalsPage() {
                         colSpan={canManage ? 6 : 5}
                         className="py-10 text-center text-muted-foreground"
                       >
-                        Loading…
+                        {t("rentals.loading")}
                       </TableCell>
                     </TableRow>
                   )}
@@ -1121,7 +1098,7 @@ export default function RentalsPage() {
                           colSpan={canManage ? 6 : 5}
                           className="py-10 text-center text-muted-foreground"
                         >
-                          No availability blocks.
+                          {t("rentals.noAvailabilityBlocks")}
                         </TableCell>
                       </TableRow>
                     )}
@@ -1136,14 +1113,14 @@ export default function RentalsPage() {
       <Dialog open={creatingLease} onOpenChange={setCreatingLease}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>New lease</DialogTitle>
+            <DialogTitle>{t("rentals.newLease")}</DialogTitle>
             <DialogDescription>
-              Select a rental property and tenant to create a lease.
+              {t("rentals.leaseDialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Property</Label>
+              <Label>{t("rentals.col.property")}</Label>
               <Select
                 value={leaseForm.propertyId}
                 onValueChange={(v) =>
@@ -1151,7 +1128,7 @@ export default function RentalsPage() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select property" />
+                  <SelectValue placeholder={t("rentals.selectProperty")} />
                 </SelectTrigger>
                 <SelectContent>
                   {pickerProperties?.data.map((p) => (
@@ -1164,7 +1141,7 @@ export default function RentalsPage() {
               </Select>
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Tenant</Label>
+              <Label>{t("rentals.col.tenant")}</Label>
               <Select
                 value={leaseForm.customerId}
                 onValueChange={(v) =>
@@ -1172,7 +1149,7 @@ export default function RentalsPage() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select customer" />
+                  <SelectValue placeholder={t("rentals.selectCustomer")} />
                 </SelectTrigger>
                 <SelectContent>
                   {pickerCustomers?.data.map((c) => (
@@ -1185,7 +1162,7 @@ export default function RentalsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Start</Label>
+              <Label>{t("rentals.col.start")}</Label>
               <Input
                 type="date"
                 value={leaseForm.startDate}
@@ -1195,7 +1172,7 @@ export default function RentalsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>End</Label>
+              <Label>{t("rentals.col.end")}</Label>
               <Input
                 type="date"
                 value={leaseForm.endDate}
@@ -1205,18 +1182,18 @@ export default function RentalsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Monthly rent (EUR)</Label>
+              <Label>{t("rentals.field.monthlyRent")}</Label>
               <Input
                 type="number"
                 value={leaseForm.monthlyRent}
                 onChange={(e) =>
                   setLeaseForm({ ...leaseForm, monthlyRent: e.target.value })
                 }
-                placeholder="Leave blank to use listing price"
+                placeholder={t("rentals.field.monthlyRentHint")}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Depozito (EUR)</Label>
+              <Label>{t("rentals.field.deposit")}</Label>
               <Input
                 type="number"
                 value={leaseForm.depositAmount}
@@ -1226,7 +1203,7 @@ export default function RentalsPage() {
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Notlar</Label>
+              <Label>{t("common.notes")}</Label>
               <Input
                 value={leaseForm.notes}
                 onChange={(e) =>
@@ -1237,7 +1214,7 @@ export default function RentalsPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCreatingLease(false)}>
-              Cancelled
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={
@@ -1249,7 +1226,7 @@ export default function RentalsPage() {
               }
               onClick={() => createLease.mutate()}
             >
-              {createLease.isPending ? "Saving…" : "Create"}
+              {createLease.isPending ? t("common.saving") : t("common.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1263,17 +1240,19 @@ export default function RentalsPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           {leaseDetail.isLoading && (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              Loading…
+              {t("rentals.loading")}
             </p>
           )}
           {detail && (
             <>
               <DialogHeader>
                 <DialogTitle>
-                  {detail.propertyTitle ?? detail.propertyReference ?? "Lease"}
+                  {detail.propertyTitle ??
+                    detail.propertyReference ??
+                    t("rentals.lease")}
                 </DialogTitle>
                 <DialogDescription>
-                  {detail.tenantName ?? "Tenant"} ·{" "}
+                  {detail.tenantName ?? t("rentals.col.tenant")} ·{" "}
                   {formatDate(detail.startDate)} – {formatDate(detail.endDate)}
                 </DialogDescription>
               </DialogHeader>
@@ -1281,7 +1260,7 @@ export default function RentalsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <LeaseStatusBadge status={detail.status} />
                 <Badge variant="outline">
-                  {RENTAL_PIPELINE_LABELS[detail.pipelineStage]}
+                  {e("status", detail.pipelineStage)}
                 </Badge>
               </div>
 
@@ -1289,7 +1268,7 @@ export default function RentalsPage() {
                 <Card>
                   <CardContent className="p-3">
                     <p className="text-xs text-muted-foreground">
-                      Monthly rent
+                      {t("rentals.detail.monthlyRent")}
                     </p>
                     <p className="text-lg font-semibold">
                       {formatCurrency(detail.monthlyRent)}
@@ -1298,7 +1277,9 @@ export default function RentalsPage() {
                 </Card>
                 <Card>
                   <CardContent className="p-3">
-                    <p className="text-xs text-muted-foreground">Depozito</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("rentals.detail.deposit")}
+                    </p>
                     <p className="text-lg font-semibold">
                       {formatCurrency(detail.depositAmount)}
                     </p>
@@ -1306,9 +1287,13 @@ export default function RentalsPage() {
                 </Card>
                 <Card>
                   <CardContent className="p-3">
-                    <p className="text-xs text-muted-foreground">Due day</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("rentals.detail.dueDay")}
+                    </p>
                     <p className="text-lg font-semibold">
-                      {detail.rentDueDay}.
+                      {t("rentals.detail.dueDayValue", {
+                        day: detail.rentDueDay,
+                      })}
                     </p>
                   </CardContent>
                 </Card>
@@ -1316,7 +1301,7 @@ export default function RentalsPage() {
 
               {(detail.ownerName || detail.ownerPhone) && (
                 <p className="text-sm text-muted-foreground">
-                  Owner: {detail.ownerName ?? "—"}
+                  {t("rentals.detail.owner", { name: detail.ownerName ?? "—" })}
                   {detail.ownerPhone ? ` · ${detail.ownerPhone}` : ""}
                 </p>
               )}
@@ -1329,7 +1314,9 @@ export default function RentalsPage() {
 
               {canManage && (
                 <div className="space-y-3 rounded-lg border p-4">
-                  <p className="text-sm font-medium">Pipeline stage</p>
+                  <p className="text-sm font-medium">
+                    {t("rentals.pipelineStage")}
+                  </p>
                   <Select
                     value={detail.pipelineStage}
                     onValueChange={(v) =>
@@ -1345,7 +1332,7 @@ export default function RentalsPage() {
                     <SelectContent>
                       {Object.values(RentalPipelineStage).map((s) => (
                         <SelectItem key={s} value={s}>
-                          {RENTAL_PIPELINE_LABELS[s]}
+                          {e("status", s)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1359,15 +1346,15 @@ export default function RentalsPage() {
                         onClick={() => activateLease.mutate(detail.id)}
                       >
                         {activateLease.isPending
-                          ? "Activating…"
-                          : "Activate lease"}
+                          ? t("rentals.activating")
+                          : t("rentals.activateLease")}
                       </Button>
                     )}
                     {canTerminate && (
                       <>
                         <Input
                           className="max-w-xs"
-                          placeholder="Termination note (optional)"
+                          placeholder={t("rentals.terminationNote")}
                           value={terminateNotes}
                           onChange={(e) => setTerminateNotes(e.target.value)}
                         />
@@ -1378,8 +1365,8 @@ export default function RentalsPage() {
                           onClick={() => terminateLease.mutate(detail.id)}
                         >
                           {terminateLease.isPending
-                            ? "Feshediliyor…"
-                            : "Leaseyi feshet"}
+                            ? t("rentals.terminating")
+                            : t("rentals.terminateLease")}
                         </Button>
                       </>
                     )}
@@ -1389,16 +1376,18 @@ export default function RentalsPage() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Payment schedule</CardTitle>
+                  <CardTitle className="text-sm">
+                    {t("rentals.paymentSchedule")}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Due</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Paid</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>{t("rentals.col.due")}</TableHead>
+                        <TableHead>{t("rentals.col.amount")}</TableHead>
+                        <TableHead>{t("rentals.col.paid")}</TableHead>
+                        <TableHead>{t("common.status")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1413,7 +1402,7 @@ export default function RentalsPage() {
                                 PAYMENT_STATUS_VARIANT[p.status] ?? "secondary"
                               }
                             >
-                              {PAYMENT_STATUS_LABEL[p.status]}
+                              {e("status", p.status)}
                             </Badge>
                           </TableCell>
                         </TableRow>
@@ -1424,7 +1413,7 @@ export default function RentalsPage() {
                             colSpan={4}
                             className="py-6 text-center text-muted-foreground"
                           >
-                            No payment schedule yet.
+                            {t("rentals.noPaymentSchedule")}
                           </TableCell>
                         </TableRow>
                       )}
@@ -1436,7 +1425,9 @@ export default function RentalsPage() {
               {detail.handovers.length > 0 && (
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Handover records</CardTitle>
+                    <CardTitle className="text-sm">
+                      {t("rentals.handoverRecords")}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {detail.handovers.map((h) => (
@@ -1445,7 +1436,7 @@ export default function RentalsPage() {
                         className="rounded border px-3 py-2 text-sm"
                       >
                         <span className="font-medium">
-                          {h.type.replace(/_/g, " ")}
+                          {e("handoverType", h.type)}
                         </span>
                         <span className="text-muted-foreground">
                           {" "}
@@ -1473,7 +1464,7 @@ export default function RentalsPage() {
                   variant="outline"
                   onClick={() => setViewingLeaseId(null)}
                 >
-                  Kapat
+                  {t("common.close")}
                 </Button>
               </DialogFooter>
             </>
@@ -1488,22 +1479,26 @@ export default function RentalsPage() {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Record payment</DialogTitle>
-            <DialogDescription>Manual collection only.</DialogDescription>
+            <DialogTitle>{t("rentals.recordPayment")}</DialogTitle>
+            <DialogDescription>
+              {t("rentals.manualCollectionOnly")}
+            </DialogDescription>
           </DialogHeader>
           {recordingPayment && (
             <div className="grid gap-4 py-2">
               <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
                 <p>{recordingPayment.propertyTitle}</p>
                 <p className="text-muted-foreground">
-                  Vade: {formatDate(recordingPayment.dueDate)} · Kalan:{" "}
-                  {formatCurrency(
-                    recordingPayment.amount - recordingPayment.paidAmount,
-                  )}
+                  {t("rentals.dueRemaining", {
+                    due: formatDate(recordingPayment.dueDate),
+                    remaining: formatCurrency(
+                      recordingPayment.amount - recordingPayment.paidAmount,
+                    ),
+                  })}
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label>Tutar (EUR)</Label>
+                <Label>{t("rentals.field.amount")}</Label>
                 <Input
                   type="number"
                   value={paymentAmount}
@@ -1511,7 +1506,7 @@ export default function RentalsPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Payment method</Label>
+                <Label>{t("rentals.field.paymentMethod")}</Label>
                 <Select
                   value={paymentMethod}
                   onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
@@ -1521,16 +1516,16 @@ export default function RentalsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={PaymentMethod.CASH}>
-                      {PAYMENT_METHOD_LABEL[PaymentMethod.CASH]}
+                      {e("paymentMethod", PaymentMethod.CASH)}
                     </SelectItem>
                     <SelectItem value={PaymentMethod.BANK_TRANSFER}>
-                      {PAYMENT_METHOD_LABEL[PaymentMethod.BANK_TRANSFER]}
+                      {e("paymentMethod", PaymentMethod.BANK_TRANSFER)}
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Notlar</Label>
+                <Label>{t("common.notes")}</Label>
                 <Input
                   value={paymentNotes}
                   onChange={(e) => setPaymentNotes(e.target.value)}
@@ -1540,7 +1535,7 @@ export default function RentalsPage() {
           )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setRecordingPayment(null)}>
-              Cancelled
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={
@@ -1550,7 +1545,9 @@ export default function RentalsPage() {
               }
               onClick={() => recordPayment.mutate()}
             >
-              {recordPayment.isPending ? "Saving…" : "Save payment"}
+              {recordPayment.isPending
+                ? t("common.saving")
+                : t("rentals.savePayment")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1560,15 +1557,14 @@ export default function RentalsPage() {
       <Dialog open={creatingPayout} onOpenChange={setCreatingPayout}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create owner payout</DialogTitle>
+            <DialogTitle>{t("rentals.createPayout")}</DialogTitle>
             <DialogDescription>
-              Gross rent for the period is calculated automatically. Override if
-              needed.
+              {t("rentals.payoutDialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Property</Label>
+              <Label>{t("rentals.col.property")}</Label>
               <Select
                 value={payoutForm.propertyId}
                 onValueChange={(v) =>
@@ -1576,7 +1572,7 @@ export default function RentalsPage() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select property" />
+                  <SelectValue placeholder={t("rentals.selectProperty")} />
                 </SelectTrigger>
                 <SelectContent>
                   {pickerProperties?.data.map((p) => (
@@ -1589,7 +1585,7 @@ export default function RentalsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Period start</Label>
+              <Label>{t("rentals.field.periodStart")}</Label>
               <Input
                 type="date"
                 value={payoutForm.periodStart}
@@ -1599,7 +1595,7 @@ export default function RentalsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Period end</Label>
+              <Label>{t("rentals.field.periodEnd")}</Label>
               <Input
                 type="date"
                 value={payoutForm.periodEnd}
@@ -1609,18 +1605,18 @@ export default function RentalsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Gross rent (EUR, optional)</Label>
+              <Label>{t("rentals.field.grossRent")}</Label>
               <Input
                 type="number"
                 value={payoutForm.grossRent}
                 onChange={(e) =>
                   setPayoutForm({ ...payoutForm, grossRent: e.target.value })
                 }
-                placeholder="Automatic"
+                placeholder={t("rentals.automatic")}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Giderler (EUR)</Label>
+              <Label>{t("rentals.field.expenses")}</Label>
               <Input
                 type="number"
                 value={payoutForm.expenses}
@@ -1630,7 +1626,7 @@ export default function RentalsPage() {
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Notlar</Label>
+              <Label>{t("common.notes")}</Label>
               <Input
                 value={payoutForm.notes}
                 onChange={(e) =>
@@ -1641,7 +1637,7 @@ export default function RentalsPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCreatingPayout(false)}>
-              Cancelled
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={
@@ -1652,7 +1648,9 @@ export default function RentalsPage() {
               }
               onClick={() => createPayout.mutate()}
             >
-              {createPayout.isPending ? "Createuluyor…" : "Create"}
+              {createPayout.isPending
+                ? t("common.creating")
+                : t("common.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1662,11 +1660,11 @@ export default function RentalsPage() {
       <Dialog open={creatingMaintenance} onOpenChange={setCreatingMaintenance}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>New maintenance request</DialogTitle>
+            <DialogTitle>{t("rentals.newMaintenanceRequest")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Property</Label>
+              <Label>{t("rentals.col.property")}</Label>
               <Select
                 value={maintenanceForm.propertyId}
                 onValueChange={(v) =>
@@ -1674,7 +1672,7 @@ export default function RentalsPage() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select property" />
+                  <SelectValue placeholder={t("rentals.selectProperty")} />
                 </SelectTrigger>
                 <SelectContent>
                   {pickerProperties?.data.map((p) => (
@@ -1687,7 +1685,7 @@ export default function RentalsPage() {
               </Select>
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Title</Label>
+              <Label>{t("rentals.col.title")}</Label>
               <Input
                 value={maintenanceForm.title}
                 onChange={(e) =>
@@ -1699,7 +1697,7 @@ export default function RentalsPage() {
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Description</Label>
+              <Label>{t("rentals.field.description")}</Label>
               <Input
                 value={maintenanceForm.description}
                 onChange={(e) =>
@@ -1711,7 +1709,7 @@ export default function RentalsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Priority</Label>
+              <Label>{t("rentals.col.priority")}</Label>
               <Select
                 value={maintenanceForm.priority}
                 onValueChange={(v) =>
@@ -1727,14 +1725,14 @@ export default function RentalsPage() {
                 <SelectContent>
                   {Object.values(MaintenancePriority).map((p) => (
                     <SelectItem key={p} value={p}>
-                      {MAINTENANCE_PRIORITY_LABEL[p]}
+                      {e("status", p)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Lease ID (optional)</Label>
+              <Label>{t("rentals.field.leaseId")}</Label>
               <Input
                 value={maintenanceForm.leaseId}
                 onChange={(e) =>
@@ -1752,7 +1750,7 @@ export default function RentalsPage() {
               variant="ghost"
               onClick={() => setCreatingMaintenance(false)}
             >
-              Cancelled
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={
@@ -1762,7 +1760,9 @@ export default function RentalsPage() {
               }
               onClick={() => createMaintenance.mutate()}
             >
-              {createMaintenance.isPending ? "Saving…" : "Create"}
+              {createMaintenance.isPending
+                ? t("common.saving")
+                : t("common.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1772,15 +1772,14 @@ export default function RentalsPage() {
       <Dialog open={addingBlock} onOpenChange={setAddingBlock}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add availability block</DialogTitle>
+            <DialogTitle>{t("rentals.addAvailabilityBlock")}</DialogTitle>
             <DialogDescription>
-              Add a booking or blocked period to the short-term calendar
-              ekleyin.
+              {t("rentals.availabilityDialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="space-y-1.5">
-              <Label>Start</Label>
+              <Label>{t("rentals.col.start")}</Label>
               <Input
                 type="date"
                 value={availabilityForm.startDate}
@@ -1793,7 +1792,7 @@ export default function RentalsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>End</Label>
+              <Label>{t("rentals.col.end")}</Label>
               <Input
                 type="date"
                 value={availabilityForm.endDate}
@@ -1806,7 +1805,7 @@ export default function RentalsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Type</Label>
+              <Label>{t("rentals.col.type")}</Label>
               <Select
                 value={availabilityForm.kind}
                 onValueChange={(v) =>
@@ -1826,14 +1825,14 @@ export default function RentalsPage() {
                     AvailabilityKind.OWNER_USE,
                   ].map((k) => (
                     <SelectItem key={k} value={k}>
-                      {AVAILABILITY_KIND_LABEL[k]}
+                      {e("availabilityKind", k)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Notlar</Label>
+              <Label>{t("common.notes")}</Label>
               <Input
                 value={availabilityForm.notes}
                 onChange={(e) =>
@@ -1847,7 +1846,7 @@ export default function RentalsPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAddingBlock(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={
@@ -1857,7 +1856,9 @@ export default function RentalsPage() {
               }
               onClick={() => createAvailability.mutate()}
             >
-              {createAvailability.isPending ? "Adding…" : "Add"}
+              {createAvailability.isPending
+                ? t("common.adding")
+                : t("common.add")}
             </Button>
           </DialogFooter>
         </DialogContent>

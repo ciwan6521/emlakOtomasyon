@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState } from "react";
 import Image from "next/image";
@@ -23,7 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
-import { useT } from "@/lib/i18n/locale-context";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
+import type { MessageKey } from "@/lib/i18n/messages";
 import {
   BuildType,
   ListingPurpose,
@@ -53,13 +54,13 @@ interface PresignResult {
 }
 
 const AMENITIES = [
-  ["hasElevator", "Elevator"],
-  ["hasParking", "Parking"],
-  ["hasBalcony", "Balcony"],
-  ["isFurnished", "Furnished"],
-  ["hasSeaView", "Sea view"],
-  ["hasPool", "Pool"],
-  ["hasGarden", "Garden"],
+  "hasElevator",
+  "hasParking",
+  "hasBalcony",
+  "isFurnished",
+  "hasSeaView",
+  "hasPool",
+  "hasGarden",
 ] as const;
 
 export function PropertyDialog({
@@ -72,6 +73,7 @@ export function PropertyDialog({
   onOpenChange: (v: boolean) => void;
 }) {
   const t = useT();
+  const enumLabel = useEnumLabel();
   const qc = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -242,22 +244,29 @@ export function PropertyDialog({
     }
   }
 
+
   if (!property) return null;
   const isRental = detail.data?.purpose === ListingPurpose.RENT;
+  const priceSuffix =
+    form.pricePeriod === PricePeriod.MONTHLY ||
+    form.pricePeriod === PricePeriod.NIGHTLY ||
+    form.pricePeriod === PricePeriod.WEEKLY
+      ? PRICE_PERIOD_SUFFIX[form.pricePeriod]
+      : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{property.reference} — Manage property</DialogTitle>
-          <DialogDescription>
-            Edit details, upload media and generate multi-language content.
-          </DialogDescription>
+          <DialogTitle>
+            {t("property.manageTitle", { reference: property.reference })}
+          </DialogTitle>
+          <DialogDescription>{t("property.manageSubtitle")}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="p-title">Title</Label>
+            <Label htmlFor="p-title">{t("property.title")}</Label>
             <Input
               id="p-title"
               value={form.title}
@@ -266,13 +275,7 @@ export function PropertyDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="p-price">
-              Price (EUR
-              {form.pricePeriod === PricePeriod.MONTHLY
-                ? PRICE_PERIOD_SUFFIX[PricePeriod.MONTHLY]
-                : form.pricePeriod === PricePeriod.NIGHTLY
-                  ? PRICE_PERIOD_SUFFIX[PricePeriod.NIGHTLY]
-                  : ""}
-              )
+              {t("property.price", { suffix: priceSuffix })}
             </Label>
             <Input
               id="p-price"
@@ -284,7 +287,7 @@ export function PropertyDialog({
           {isRental && (
             <>
               <div className="space-y-1.5">
-                <Label>Price period</Label>
+                <Label>{t("property.pricePeriod")}</Label>
                 <Select
                   value={form.pricePeriod || PricePeriod.MONTHLY}
                   onValueChange={(v) => setForm({ ...form, pricePeriod: v })}
@@ -293,14 +296,20 @@ export function PropertyDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={PricePeriod.MONTHLY}>Monthly</SelectItem>
-                    <SelectItem value={PricePeriod.NIGHTLY}>Nightly</SelectItem>
-                    <SelectItem value={PricePeriod.WEEKLY}>Weekly</SelectItem>
+                    {[
+                      PricePeriod.MONTHLY,
+                      PricePeriod.NIGHTLY,
+                      PricePeriod.WEEKLY,
+                    ].map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {enumLabel("pricePeriod", v)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Rental term</Label>
+                <Label>{t("property.rentalTerm")}</Label>
                 <Select
                   value={form.rentalTermType || "NA"}
                   onValueChange={(v) =>
@@ -311,21 +320,17 @@ export function PropertyDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NA">Unspecified</SelectItem>
-                    <SelectItem value={RentalTermType.LONG_TERM}>
-                      Long term
-                    </SelectItem>
-                    <SelectItem value={RentalTermType.SHORT_TERM}>
-                      Short term
-                    </SelectItem>
-                    <SelectItem value={RentalTermType.SEASONAL}>
-                      Seasonal
-                    </SelectItem>
+                    <SelectItem value="NA">{t("property.unspecified")}</SelectItem>
+                    {Object.values(RentalTermType).map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {enumLabel("rentalTerm", v)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="p-available">Available from</Label>
+                <Label htmlFor="p-available">{t("property.availableFrom")}</Label>
                 <Input
                   id="p-available"
                   type="date"
@@ -336,7 +341,7 @@ export function PropertyDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="p-deposit">Deposit (EUR)</Label>
+                <Label htmlFor="p-deposit">{t("property.deposit")}</Label>
                 <Input
                   id="p-deposit"
                   type="number"
@@ -347,7 +352,7 @@ export function PropertyDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="p-mgmt">Management fee (%)</Label>
+                <Label htmlFor="p-mgmt">{t("property.managementFee")}</Label>
                 <Input
                   id="p-mgmt"
                   type="number"
@@ -360,7 +365,7 @@ export function PropertyDialog({
               {(form.rentalTermType === RentalTermType.LONG_TERM ||
                 !form.rentalTermType) && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="p-minlease">Min lease (months)</Label>
+                  <Label htmlFor="p-minlease">{t("property.minLease")}</Label>
                   <Input
                     id="p-minlease"
                     type="number"
@@ -375,7 +380,7 @@ export function PropertyDialog({
                 form.pricePeriod === PricePeriod.NIGHTLY) && (
                 <>
                   <div className="space-y-1.5">
-                    <Label htmlFor="p-minstay">Min stay (nights)</Label>
+                    <Label htmlFor="p-minstay">{t("property.minStay")}</Label>
                     <Input
                       id="p-minstay"
                       type="number"
@@ -386,7 +391,7 @@ export function PropertyDialog({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="p-nightly">Nightly rate (EUR)</Label>
+                    <Label htmlFor="p-nightly">{t("property.nightlyRate")}</Label>
                     <Input
                       id="p-nightly"
                       type="number"
@@ -401,7 +406,7 @@ export function PropertyDialog({
             </>
           )}
           <div className="space-y-1.5">
-            <Label htmlFor="p-rooms">Rooms</Label>
+            <Label htmlFor="p-rooms">{t("property.rooms")}</Label>
             <Input
               id="p-rooms"
               value={form.rooms}
@@ -409,7 +414,7 @@ export function PropertyDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="p-size">Size (m²)</Label>
+            <Label htmlFor="p-size">{t("property.size")}</Label>
             <Input
               id="p-size"
               type="number"
@@ -418,7 +423,7 @@ export function PropertyDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="p-neigh">Neighborhood</Label>
+            <Label htmlFor="p-neigh">{t("property.neighborhood")}</Label>
             <Input
               id="p-neigh"
               value={form.neighborhood}
@@ -428,7 +433,7 @@ export function PropertyDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="p-floor">Floor</Label>
+            <Label htmlFor="p-floor">{t("property.floor")}</Label>
             <Input
               id="p-floor"
               type="number"
@@ -437,7 +442,7 @@ export function PropertyDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Build type</Label>
+            <Label>{t("property.buildType")}</Label>
             <Select
               value={form.buildType || "NA"}
               onValueChange={(v) =>
@@ -448,14 +453,17 @@ export function PropertyDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NA">Unspecified</SelectItem>
-                <SelectItem value={BuildType.NEW}>New build</SelectItem>
-                <SelectItem value={BuildType.OLD}>Old build</SelectItem>
+                <SelectItem value="NA">{t("property.unspecified")}</SelectItem>
+                {Object.values(BuildType).map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {enumLabel("buildType", v)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="p-dues">Monthly dues (EUR)</Label>
+            <Label htmlFor="p-dues">{t("property.monthlyDues")}</Label>
             <Input
               id="p-dues"
               type="number"
@@ -466,22 +474,22 @@ export function PropertyDialog({
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Features</Label>
+            <Label>{t("property.features")}</Label>
             <div className="flex flex-wrap gap-1.5">
-              {AMENITIES.map(([key, label]) => (
+              {AMENITIES.map((key) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, [key]: !f[key] }))}
                   className={`rounded-full border px-3 py-1 text-xs transition-colors ${form[key] ? "border-primary bg-primary text-primary-foreground" : "border-input hover:bg-accent"}`}
                 >
-                  {label}
+                  {t(`amenity.${key}` as MessageKey)}
                 </button>
               ))}
             </div>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="p-desc">Description</Label>
+            <Label htmlFor="p-desc">{t("property.description")}</Label>
             <textarea
               id="p-desc"
               className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -492,15 +500,17 @@ export function PropertyDialog({
             />
           </div>
           <div className="flex gap-4 text-xs text-muted-foreground sm:col-span-2">
-            <span>{property.viewCount} views</span>
-            <span>{property.sentCount} sent</span>
-            <span>{property.favoriteCount} favorites</span>
+            <span>{t("properties.views", { n: property.viewCount })}</span>
+            <span>{t("properties.sent", { n: property.sentCount })}</span>
+            <span>
+              {t("properties.favorites", { n: property.favoriteCount })}
+            </span>
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Media</Label>
+            <Label>{t("property.media")}</Label>
             <div className="flex gap-2">
               <input
                 ref={fileInput}
@@ -522,7 +532,7 @@ export function PropertyDialog({
                 ) : (
                   <Upload className="mr-1.5 h-3.5 w-3.5" />
                 )}
-                Upload
+                {t("property.upload")}
               </Button>
             </div>
           </div>
@@ -546,7 +556,9 @@ export function PropertyDialog({
                 )}
                 <button
                   type="button"
-                  title={m.isCover ? "Cover" : "Set as cover"}
+                  title={
+                    m.isCover ? t("property.cover") : t("property.setCover")
+                  }
                   onClick={() => !m.isCover && setCover.mutate(m)}
                   className={`absolute right-1 top-1 rounded-full p-1 ${m.isCover ? "bg-primary text-primary-foreground" : "bg-background/80 opacity-0 group-hover:opacity-100"}`}
                 >
@@ -559,7 +571,7 @@ export function PropertyDialog({
             ))}
             {(detail.data?.media?.length ?? 0) === 0 && (
               <p className="col-span-4 py-4 text-center text-xs text-muted-foreground">
-                No media yet. Upload photos to enable publishing.
+                {t("property.noMedia")}
               </p>
             )}
           </div>
@@ -584,7 +596,7 @@ export function PropertyDialog({
             disabled={save.isPending}
             onClick={() => save.mutate()}
           >
-            {save.isPending ? "Saving…" : "Save changes"}
+            {save.isPending ? t("common.saving") : t("property.saveChanges")}
           </Button>
         </DialogFooter>
       </DialogContent>

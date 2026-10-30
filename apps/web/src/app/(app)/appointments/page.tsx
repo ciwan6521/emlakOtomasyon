@@ -32,6 +32,12 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
+import {
+  useEnumLabel,
+  useT,
+  type TranslateFn,
+} from "@/lib/i18n/locale-context";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { cn, formatDate } from "@/lib/utils";
 import {
   AppointmentStatus,
@@ -43,13 +49,33 @@ import { AppointmentDialog } from "./appointment-dialog";
 
 type ViewMode = "list" | "calendar";
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAY_KEYS: MessageKey[] = [
+  "appointments.weekday.mon",
+  "appointments.weekday.tue",
+  "appointments.weekday.wed",
+  "appointments.weekday.thu",
+  "appointments.weekday.fri",
+  "appointments.weekday.sat",
+  "appointments.weekday.sun",
+];
 
-function monthLabel(year: number, month: number) {
-  return new Date(year, month, 1).toLocaleDateString("en-GB", {
-    month: "long",
-    year: "numeric",
-  });
+const MONTH_KEYS: MessageKey[] = [
+  "appointments.month.jan",
+  "appointments.month.feb",
+  "appointments.month.mar",
+  "appointments.month.apr",
+  "appointments.month.may",
+  "appointments.month.jun",
+  "appointments.month.jul",
+  "appointments.month.aug",
+  "appointments.month.sep",
+  "appointments.month.oct",
+  "appointments.month.nov",
+  "appointments.month.dec",
+];
+
+function monthLabel(t: TranslateFn, year: number, month: number) {
+  return `${t(MONTH_KEYS[month])} ${year}`;
 }
 
 function buildCalendarDays(year: number, month: number) {
@@ -79,6 +105,7 @@ function CalendarGrid({
   year: number;
   month: number;
 }) {
+  const t = useT();
   const cells = useMemo(() => buildCalendarDays(year, month), [year, month]);
 
   const byDay = useMemo(() => {
@@ -97,12 +124,12 @@ function CalendarGrid({
   return (
     <div className="overflow-hidden rounded-lg border">
       <div className="grid grid-cols-7 border-b bg-muted/40">
-        {WEEKDAYS.map((d) => (
+        {WEEKDAY_KEYS.map((d) => (
           <div
             key={d}
             className="px-2 py-2 text-center text-xs font-medium text-muted-foreground"
           >
-            {d}
+            {t(d)}
           </div>
         ))}
       </div>
@@ -146,7 +173,7 @@ function CalendarGrid({
                 ))}
                 {dayAppts.length > 3 && (
                   <p className="text-[10px] text-muted-foreground">
-                    +{dayAppts.length - 3} more
+                    {t("appointments.more", { n: dayAppts.length - 3 })}
                   </p>
                 )}
               </div>
@@ -159,6 +186,8 @@ function CalendarGrid({
 }
 
 export default function AppointmentsPage() {
+  const t = useT();
+  const e = useEnumLabel();
   const { can } = useAuth();
   const qc = useQueryClient();
   const [status, setStatus] = useState("ALL");
@@ -197,7 +226,7 @@ export default function AppointmentsPage() {
         action={
           canManage && (
             <Button onClick={() => setCreating(true)}>
-              <Plus className="mr-1.5 h-4 w-4" /> New appointment
+              <Plus className="mr-1.5 h-4 w-4" /> {t("appointments.new")}
             </Button>
           )
         }
@@ -209,10 +238,10 @@ export default function AppointmentsPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All statuses</SelectItem>
+            <SelectItem value="ALL">{t("appointments.allStatuses")}</SelectItem>
             {Object.values(AppointmentStatus).map((s) => (
               <SelectItem key={s} value={s}>
-                {s}
+                {e("status", s)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -224,7 +253,7 @@ export default function AppointmentsPage() {
             className="h-8"
             onClick={() => setView("list")}
           >
-            <List className="mr-1 h-3.5 w-3.5" /> List
+            <List className="mr-1 h-3.5 w-3.5" /> {t("appointments.viewList")}
           </Button>
           <Button
             size="sm"
@@ -232,7 +261,8 @@ export default function AppointmentsPage() {
             className="h-8"
             onClick={() => setView("calendar")}
           >
-            <LayoutGrid className="mr-1 h-3.5 w-3.5" /> Calendar
+            <LayoutGrid className="mr-1 h-3.5 w-3.5" />{" "}
+            {t("appointments.viewCalendar")}
           </Button>
         </div>
       </div>
@@ -253,7 +283,7 @@ export default function AppointmentsPage() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h3 className="text-sm font-semibold">
-              {monthLabel(cursor.year, cursor.month)}
+              {monthLabel(t, cursor.year, cursor.month)}
             </h3>
             <Button
               variant="outline"
@@ -270,7 +300,7 @@ export default function AppointmentsPage() {
           </div>
           {isLoading ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              Loading…
+              {t("appointments.loading")}
             </p>
           ) : (
             <CalendarGrid
@@ -285,13 +315,13 @@ export default function AppointmentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>When</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Property</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Agent</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t("appointments.when")}</TableHead>
+                <TableHead>{t("appointments.fieldTitle")}</TableHead>
+                <TableHead>{t("appointments.property")}</TableHead>
+                <TableHead>{t("appointments.customer")}</TableHead>
+                <TableHead>{t("appointments.agent")}</TableHead>
+                <TableHead>{t("appointments.location")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -340,7 +370,7 @@ export default function AppointmentsPage() {
                         <SelectContent>
                           {Object.values(AppointmentStatus).map((s) => (
                             <SelectItem key={s} value={s}>
-                              {s}
+                              {e("status", s)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -357,7 +387,7 @@ export default function AppointmentsPage() {
                     colSpan={7}
                     className="py-10 text-center text-muted-foreground"
                   >
-                    Loading…
+                    {t("appointments.loading")}
                   </TableCell>
                 </TableRow>
               )}
@@ -367,7 +397,7 @@ export default function AppointmentsPage() {
                     colSpan={7}
                     className="py-10 text-center text-muted-foreground"
                   >
-                    No appointments yet.
+                    {t("appointments.empty")}
                   </TableCell>
                 </TableRow>
               )}

@@ -27,9 +27,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
+import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
+import type { MessageKey } from "@/lib/i18n/messages";
 import {
   CommChannel,
   parseListingQuery,
+  REGION_LABELS,
   type CallAssistCard,
   type CallAssistSearchResponse,
   type CallAssistSendResult,
@@ -45,14 +48,30 @@ interface QueueItem {
 
 const CHANNELS: {
   value: CommChannel;
-  label: string;
+  labelKey: MessageKey;
   icon: typeof MessageCircle;
 }[] = [
-  { value: CommChannel.WHATSAPP, label: "WhatsApp", icon: MessageCircle },
-  { value: CommChannel.VIBER, label: "Viber", icon: MessageCircle },
-  { value: CommChannel.TELEGRAM, label: "Telegram", icon: Send },
-  { value: CommChannel.SMS, label: "SMS", icon: Phone },
-  { value: CommChannel.EMAIL, label: "Email", icon: Mail },
+  {
+    value: CommChannel.WHATSAPP,
+    labelKey: "callAssist.channel.whatsapp",
+    icon: MessageCircle,
+  },
+  {
+    value: CommChannel.VIBER,
+    labelKey: "callAssist.channel.viber",
+    icon: MessageCircle,
+  },
+  {
+    value: CommChannel.TELEGRAM,
+    labelKey: "callAssist.channel.telegram",
+    icon: Send,
+  },
+  { value: CommChannel.SMS, labelKey: "callAssist.channel.sms", icon: Phone },
+  {
+    value: CommChannel.EMAIL,
+    labelKey: "callAssist.channel.email",
+    icon: Mail,
+  },
 ];
 
 /**
@@ -71,27 +90,27 @@ const ADDRESS_SPACE: Record<CommChannel, string> = {
 
 const RECIPIENT_FIELD: Record<
   CommChannel,
-  { label: string; placeholder: string }
+  { labelKey: MessageKey; placeholderKey: MessageKey }
 > = {
   [CommChannel.WHATSAPP]: {
-    label: "Recipient phone",
-    placeholder: "+382 6x xxx xxx",
+    labelKey: "callAssist.recipient.phone",
+    placeholderKey: "callAssist.recipient.phonePlaceholder",
   },
   [CommChannel.SMS]: {
-    label: "Recipient phone",
-    placeholder: "+382 6x xxx xxx",
+    labelKey: "callAssist.recipient.phone",
+    placeholderKey: "callAssist.recipient.phonePlaceholder",
   },
   [CommChannel.VIBER]: {
-    label: "Viber subscriber ID",
-    placeholder: "Sent to you when the contact messages your Viber account",
+    labelKey: "callAssist.recipient.viber",
+    placeholderKey: "callAssist.recipient.viberPlaceholder",
   },
   [CommChannel.TELEGRAM]: {
-    label: "Telegram chat ID",
-    placeholder: "123456789",
+    labelKey: "callAssist.recipient.telegram",
+    placeholderKey: "callAssist.recipient.telegramPlaceholder",
   },
   [CommChannel.EMAIL]: {
-    label: "Recipient email",
-    placeholder: "name@example.com",
+    labelKey: "callAssist.recipient.email",
+    placeholderKey: "callAssist.recipient.emailPlaceholder",
   },
 };
 
@@ -105,6 +124,8 @@ function useDebounced<T>(value: T, delay = 350): T {
 }
 
 export default function CallAssistPage() {
+  const t = useT();
+  const e = useEnumLabel();
   const [queryText, setQueryText] = useState("");
   const debounced = useDebounced(queryText);
   const [selected, setSelected] = useState<Record<string, CallAssistCard>>({});
@@ -201,13 +222,18 @@ export default function CallAssistPage() {
     await navigator.clipboard.writeText(text);
   }
 
+  function channelLabel(ch: string): string {
+    const found = CHANNELS.find((c) => c.value === ch);
+    return found ? t(found.labelKey) : ch;
+  }
+
   const canSend =
     selectedList.length > 0 && recipient.trim().length > 0 && !send.isPending;
   const chips = [
-    parsedPreview.region && parsedPreview.region,
-    parsedPreview.rooms && `${parsedPreview.rooms} rooms`,
-    parsedPreview.type && parsedPreview.type,
-    parsedPreview.purpose && parsedPreview.purpose,
+    parsedPreview.region && REGION_LABELS[parsedPreview.region],
+    parsedPreview.rooms && t("callAssist.rooms", { n: parsedPreview.rooms }),
+    parsedPreview.type && e("propertyType", parsedPreview.type),
+    parsedPreview.purpose && e("purpose", parsedPreview.purpose),
     parsedPreview.budgetMin != null &&
       `≥ ${formatCurrency(parsedPreview.budgetMin)}`,
     parsedPreview.budgetMax != null &&
@@ -226,27 +252,27 @@ export default function CallAssistPage() {
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">Customer</CardTitle>
+              <CardTitle className="text-sm">{t("callAssist.customer")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-1.5">
-                <Label>Name (optional)</Label>
+                <Label>{t("callAssist.nameOptional")}</Label>
                 <Input
                   value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Customer name"
+                  onChange={(ev) => setCustomerName(ev.target.value)}
+                  placeholder={t("callAssist.customerNamePlaceholder")}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>{RECIPIENT_FIELD[channel].label}</Label>
+                <Label>{t(RECIPIENT_FIELD[channel].labelKey)}</Label>
                 <Input
                   value={recipient}
-                  onChange={(e) => setRecipient(e.target.value)}
-                  placeholder={RECIPIENT_FIELD[channel].placeholder}
+                  onChange={(ev) => setRecipient(ev.target.value)}
+                  placeholder={t(RECIPIENT_FIELD[channel].placeholderKey)}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Channel</Label>
+                <Label>{t("comms.channel")}</Label>
                 <div className="grid grid-cols-2 gap-1.5">
                   {CHANNELS.map((c) => (
                     <button
@@ -254,18 +280,18 @@ export default function CallAssistPage() {
                       onClick={() => pickChannel(c.value)}
                       className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${channel === c.value ? "border-primary bg-primary text-primary-foreground" : "border-input hover:bg-accent"}`}
                     >
-                      <c.icon className="h-3.5 w-3.5" /> {c.label}
+                      <c.icon className="h-3.5 w-3.5" /> {t(c.labelKey)}
                     </button>
                   ))}
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Conversation notes</Label>
+                <Label>{t("callAssist.conversationNotes")}</Label>
                 <textarea
                   className="flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Jot down what the customer says…"
+                  onChange={(ev) => setNotes(ev.target.value)}
+                  placeholder={t("callAssist.notesPlaceholder")}
                 />
               </div>
             </CardContent>
@@ -274,7 +300,9 @@ export default function CallAssistPage() {
           {(queue.data?.length ?? 0) > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Call queue</CardTitle>
+                <CardTitle className="text-sm">
+                  {t("callAssist.callQueue")}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5">
                 {queue.data!.map((item) => (
@@ -304,8 +332,8 @@ export default function CallAssistPage() {
             <Input
               autoFocus
               value={queryText}
-              onChange={(e) => setQueryText(e.target.value)}
-              placeholder='Type e.g. "Budva 2+1 200k" or "villa tivat rent 1.2m"…'
+              onChange={(ev) => setQueryText(ev.target.value)}
+              placeholder={t("callAssist.searchPlaceholder")}
               className="h-11 pl-9 text-base"
             />
             {search.isFetching && (
@@ -327,8 +355,7 @@ export default function CallAssistPage() {
           {!debounced.trim() && (
             <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-20 text-center text-sm text-muted-foreground">
               <Building2 className="mb-2 h-8 w-8" />
-              Start typing what the customer is looking for — results filter in
-              real time.
+              {t("callAssist.emptyHint")}
             </div>
           )}
 
@@ -362,7 +389,7 @@ export default function CallAssistPage() {
                       <Check className="h-3.5 w-3.5" />
                     </button>
                     <Badge className="absolute right-2 top-2 bg-primary/90">
-                      {card.relevance}% match
+                      {t("callAssist.match", { n: card.relevance })}
                     </Badge>
                   </div>
                   <CardContent className="space-y-2 p-3">
@@ -421,7 +448,8 @@ export default function CallAssistPage() {
                         className="ml-auto h-7 px-2"
                         onClick={() => share(card)}
                       >
-                        <Share2 className="mr-1 h-3.5 w-3.5" /> Share
+                        <Share2 className="mr-1 h-3.5 w-3.5" />{" "}
+                        {t("callAssist.share")}
                       </Button>
                       <Button
                         size="sm"
@@ -429,7 +457,9 @@ export default function CallAssistPage() {
                         className="h-7 px-2"
                         onClick={() => toggle(card)}
                       >
-                        {isSel ? "Selected" : "Select"}
+                        {isSel
+                          ? t("callAssist.selected")
+                          : t("callAssist.select")}
                       </Button>
                     </div>
                   </CardContent>
@@ -440,7 +470,7 @@ export default function CallAssistPage() {
 
           {debounced.trim() && search.data?.results.length === 0 && (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              No active listings match these criteria.
+              {t("callAssist.noMatches")}
             </p>
           )}
         </div>
@@ -451,21 +481,24 @@ export default function CallAssistPage() {
         <div className="mx-auto flex max-w-screen-2xl flex-col gap-2 p-3 lg:flex-row lg:items-center">
           <div className="flex items-center gap-2 lg:w-72">
             <Badge variant={selectedList.length ? "default" : "secondary"}>
-              {selectedList.length} selected
+              {t("callAssist.nSelected", { n: selectedList.length })}
             </Badge>
             <span className="truncate text-xs text-muted-foreground">
               {recipient
-                ? `→ ${customerName || recipient} via ${channel}`
-                : "Set a recipient on the left"}
+                ? t("callAssist.recipientVia", {
+                    name: customerName || recipient,
+                    channel: channelLabel(channel),
+                  })
+                : t("callAssist.setRecipient")}
             </span>
           </div>
           <Input
             value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
+            onChange={(ev) => {
+              setMessage(ev.target.value);
               setMessageTouched(true);
             }}
-            placeholder="Auto-prepared message — select listings to populate…"
+            placeholder={t("callAssist.messagePlaceholder")}
             className="flex-1"
           />
           <Button
@@ -478,13 +511,21 @@ export default function CallAssistPage() {
             ) : (
               <Send className="mr-1.5 h-4 w-4" />
             )}
-            Send to customer
+            {t("callAssist.sendToCustomer")}
           </Button>
         </div>
         {sentInfo && (
           <div className="bg-emerald-500/10 py-1.5 text-center text-xs font-medium text-emerald-600">
-            Sent {sentInfo.sent} listing{sentInfo.sent === 1 ? "" : "s"} to{" "}
-            {sentInfo.recipient} via {sentInfo.channel}
+            {sentInfo.sent === 1
+              ? t("callAssist.sentOne", {
+                  recipient: sentInfo.recipient,
+                  channel: channelLabel(sentInfo.channel),
+                })
+              : t("callAssist.sentMany", {
+                  n: sentInfo.sent,
+                  recipient: sentInfo.recipient,
+                  channel: channelLabel(sentInfo.channel),
+                })}
           </div>
         )}
       </div>

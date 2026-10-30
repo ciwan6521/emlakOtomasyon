@@ -10,16 +10,69 @@ export interface ParsedListingQuery {
   raw: string;
 }
 
+/**
+ * Spoken and typed variants, diacritics stripped. Longer or more specific
+ * phrases come first so "donja gorica" is not swallowed by "gorica".
+ */
 const REGION_KEYWORDS: Array<[Region, string[]]> = [
-  [Region.BUDVA, ["budva"]],
-  [Region.KOTOR, ["kotor"]],
-  [Region.TIVAT, ["tivat"]],
-  [Region.BAR, ["bar"]],
-  [Region.HERCEG_NOVI, ["herceg novi", "herceg-novi", "hercegnovi", "herceg"]],
-  [Region.PODGORICA, ["podgorica", "podgorice"]],
-  [Region.ULCINJ, ["ulcinj", "ulqin"]],
-  [Region.CETINJE, ["cetinje"]],
+  [Region.DONJA_GORICA, ["donja gorica", "donjagorica"]],
+  [Region.GORNJA_GORICA, ["gornja gorica", "gornjagorica"]],
+  [Region.KAKARICKA_GORA, ["kakaricka gora", "kakaricka"]],
+  [Region.DONJI_KOKOTI, ["donji kokoti"]],
+  [Region.GORNJI_KOKOTI, ["gornji kokoti"]],
+  [Region.STARI_AERODROM, ["stari aerodrom", "aerodrom"]],
+  [Region.CVIJETIN_BRIJEG, ["cvijetin brijeg", "cvijetin"]],
+  [Region.VRELA_RIBNICKA, ["vrela ribnicka", "vrela"]],
+  [Region.PREKO_MORACE, ["preko morace", "preko"]],
+  [Region.NOVA_VAROS, ["nova varos", "novavaros"]],
+  [Region.STARA_VAROS, ["stara varos", "staravaros"]],
+  [Region.CITY_KVART, ["city kvart", "siti kvart", "citykvart", "city"]],
+  [Region.BLOK_IX, ["blok ix", "blok 9", "blok9"]],
+  [Region.BLOK_VI, ["blok vi", "blok 6", "blok6"]],
+  [Region.BLOK_V, ["blok v", "blok 5", "blok5"]],
+  [Region.MALO_BRDO, ["malo brdo", "malobrdo"]],
+  [Region.TUSKI_PUT, ["tuski put", "tuski"]],
+  [Region.KUCE_RAKICA, ["kuce rakica", "rakica"]],
+  [Region.CENTAR, ["centar", "center", "centre", "merkez"]],
+  [Region.ZABJELO, ["zabjelo"]],
+  [Region.SADINE, ["sadine"]],
+  [Region.KONIK, ["konik"]],
+  [Region.DRAC, ["drac"]],
+  [Region.MOMISICI, ["momisici"]],
+  [Region.KRUSEVAC, ["krusevac"]],
+  [Region.LJUBOVIC, ["ljubovic"]],
+  [Region.DAHNA, ["dahna"]],
+  [Region.TOLOSI, ["tolosi"]],
+  [Region.ZAGORIC, ["zagoric"]],
+  [Region.MASLINE, ["masline"]],
+  [Region.POBREZJE, ["pobrezje"]],
+  [Region.ZLATICA, ["zlatica"]],
+  [Region.MURTOVINA, ["murtovina"]],
+  [Region.CEPURCI, ["cepurci"]],
+  [Region.LJESKOPOLJE, ["ljeskopolje"]],
+  [Region.DAJBABE, ["dajbabe"]],
+  [Region.FARMACI, ["farmaci"]],
+  [Region.MAREZA, ["mareza"]],
+  [Region.ROGAMI, ["rogami"]],
+  [Region.DOLJANI, ["doljani"]],
+  [Region.BERI, ["beri"]],
+  [Region.BOTUN, ["botun"]],
+  [Region.CIJEVNA, ["cijevna"]],
+  [Region.TUZI, ["tuzi"]],
+  [Region.GOLUBOVCI, ["golubovci"]],
+  [Region.ZETA, ["zeta"]],
+  // Bare "gorica" last so the compound names above win.
+  [Region.GORICA, ["gorica"]],
 ];
+
+/** Lower-cases and strips the diacritics used in Montenegrin place names. */
+function normalise(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
+}
 
 const TYPE_KEYWORDS: Array<[PropertyType, string[]]> = [
   [PropertyType.APARTMENT, ["apartment", "apart", "daire", "stan", "flat"]],
@@ -51,13 +104,23 @@ const SALE_KEYWORDS = [
 
 export function parseListingQuery(input: string): ParsedListingQuery {
   const raw = input ?? "";
-  let text = ` ${raw.toLowerCase()} `;
+  let text = ` ${normalise(raw)} `;
   const result: ParsedListingQuery = { raw };
 
-  // Region
+  // Region — match on word boundaries so "beri" does not fire inside "berislavci"
+  // and "city" does not fire inside "capacity".
   for (const [region, keywords] of REGION_KEYWORDS) {
-    if (keywords.some((k) => text.includes(k))) {
+    const hit = keywords.find((k) =>
+      new RegExp(`(^|[^a-z0-9])${k.replace(/\s+/g, "\\s*")}(?=$|[^a-z0-9])`).test(
+        text,
+      ),
+    );
+    if (hit) {
       result.region = region;
+      text = text.replace(
+        new RegExp(hit.replace(/\s+/g, "\\s*")),
+        " ",
+      );
       break;
     }
   }

@@ -14,22 +14,34 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/status-badge";
 import { api } from "@/lib/api";
+import { useT } from "@/lib/i18n/locale-context";
 import { formatCurrency } from "@/lib/utils";
-import { Region, type Paginated, type PropertyDto } from "@reos/shared";
+import {
+  Region,
+  REGION_LABELS,
+  type Paginated,
+  type PropertyDto,
+} from "@reos/shared";
+
+function MapLoading() {
+  const t = useT();
+  return (
+    <div className="flex h-[520px] items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">
+      {t("map.loading")}
+    </div>
+  );
+}
 
 const PropertyMap = dynamic(
   () => import("@/components/property-map").then((m) => m.PropertyMap),
   {
     ssr: false,
-    loading: () => (
-      <div className="flex h-[520px] items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">
-        Loading map…
-      </div>
-    ),
+    loading: () => <MapLoading />,
   },
 );
 
 export default function MapPage() {
+  const t = useT();
   const [region, setRegion] = useState("ALL");
   const { data } = useQuery({
     queryKey: ["properties", "map", region],
@@ -61,10 +73,10 @@ export default function MapPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All regions</SelectItem>
+              <SelectItem value="ALL">{t("map.allRegions")}</SelectItem>
               {Object.values(Region).map((r) => (
                 <SelectItem key={r} value={r}>
-                  {r}
+                  {REGION_LABELS[r]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -76,7 +88,7 @@ export default function MapPage() {
           <CardContent className="p-0">
             {points.length === 0 ? (
               <div className="flex h-[520px] items-center justify-center text-sm text-muted-foreground">
-                No geocoded listings.
+                {t("map.noGeocoded")}
               </div>
             ) : (
               <PropertyMap properties={points} />
@@ -94,7 +106,7 @@ export default function MapPage() {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{p.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {p.region} · {p.rooms}
+                    {REGION_LABELS[p.region]} · {p.rooms}
                   </p>
                 </div>
                 <div className="text-right">

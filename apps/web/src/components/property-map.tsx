@@ -5,7 +5,7 @@ import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { formatCurrency } from "@/lib/utils";
-import type { PropertyDto } from "@reos/shared";
+import { regionLabel, type PropertyDto } from "@reos/shared";
 
 const defaultCenter: [number, number] = [42.4304, 19.2594];
 
@@ -55,7 +55,7 @@ export function PropertyMap({ properties }: { properties: PropertyDto[] }) {
             <div className="text-sm">
               <p className="font-semibold">{p.title}</p>
               <p className="text-muted-foreground">
-                {p.region} · {p.rooms}
+                {regionLabel(p.region)} · {p.rooms}
               </p>
               <p className="font-medium">{formatCurrency(p.price)}</p>
             </div>
