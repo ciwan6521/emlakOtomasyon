@@ -99,6 +99,15 @@ export class PropertiesController {
     return this.properties.publish(id);
   }
 
+  @Post(":id/share")
+  @RequirePermissions({
+    permission: Permission.PROPERTY_PUBLISH,
+    scope: Scope.BRANCH,
+  })
+  share(@Param("id") id: string) {
+    return this.properties.share(id);
+  }
+
   @Post(":id/media/presign")
   @RequirePermissions({
     permission: Permission.PROPERTY_MEDIA_MANAGE,

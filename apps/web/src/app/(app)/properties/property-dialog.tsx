@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Languages, Star, Upload } from "lucide-react";
+import { Loader2, Languages, Send, Star, Upload } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import { ApiClientError, api } from "@/lib/api";
 import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
 import type { MessageKey } from "@/lib/i18n/messages";
 import {
@@ -35,6 +35,7 @@ import {
   RentalTermType,
   type PropertyDto,
 } from "@reos/shared";
+import { SocialShareFields } from "./social-share-fields";
 
 interface MediaItem {
   id: string;
@@ -102,8 +103,11 @@ export function PropertyDialog({
     hasSeaView: false,
     hasPool: false,
     hasGarden: false,
+    shareOnInstagram: true,
+    shareOnFacebook: true,
   });
   const [initialized, setInitialized] = useState<string | null>(null);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
 
   const detail = useQuery({
     queryKey: ["property", property?.id],
@@ -141,6 +145,8 @@ export function PropertyDialog({
       hasSeaView: d.hasSeaView,
       hasPool: d.hasPool,
       hasGarden: d.hasGarden,
+      shareOnInstagram: d.shareOnInstagram ?? true,
+      shareOnFacebook: d.shareOnFacebook ?? true,
     });
   }
 
@@ -179,10 +185,42 @@ export function PropertyDialog({
         hasSeaView: form.hasSeaView,
         hasPool: form.hasPool,
         hasGarden: form.hasGarden,
+        shareOnInstagram: form.shareOnInstagram,
+        shareOnFacebook: form.shareOnFacebook,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["properties"] });
       qc.invalidateQueries({ queryKey: ["property", property?.id] });
+    },
+  });
+
+  // Persists the channel flags first so the worker sees the latest choice,
+  // then queues an immediate post.
+  const shareNow = useMutation({
+    mutationFn: async () => {
+      await api.patch(`/properties/${property!.id}`, {
+        shareOnInstagram: form.shareOnInstagram,
+        shareOnFacebook: form.shareOnFacebook,
+      });
+      return api.post<{ queued: boolean }>(`/properties/${property!.id}/share`);
+    },
+    onMutate: () => setShareMessage(null),
+    onSuccess: () => {
+      setShareMessage(t("property.shareQueued"));
+      qc.invalidateQueries({ queryKey: ["social-posts"] });
+    },
+    onError: (err) => {
+      const detail =
+        err instanceof ApiClientError
+          ? err.error.detail || err.error.title
+          : "";
+      setShareMessage(
+        /published/i.test(detail)
+          ? t("property.shareNotPublished")
+          : /without media/i.test(detail)
+            ? t("property.noMedia")
+            : detail || t("common.error"),
+      );
     },
   });
 
@@ -499,6 +537,38 @@ export function PropertyDialog({
               }
             />
           </div>
+          <SocialShareFields
+            value={{
+              shareOnInstagram: form.shareOnInstagram,
+              shareOnFacebook: form.shareOnFacebook,
+            }}
+            onChange={(next) => setForm((f) => ({ ...f, ...next }))}
+          >
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={
+                shareNow.isPending ||
+                (!form.shareOnInstagram && !form.shareOnFacebook)
+              }
+              onClick={() => shareNow.mutate()}
+            >
+              {shareNow.isPending ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {t("property.shareNow")}
+            </Button>
+          </SocialShareFields>
+          {shareMessage && (
+            <p
+              className={`text-xs sm:col-span-2 ${shareNow.isError ? "text-destructive" : "text-muted-foreground"}`}
+            >
+              {shareMessage}
+            </p>
+          )}
           <div className="flex gap-4 text-xs text-muted-foreground sm:col-span-2">
             <span>{t("properties.views", { n: property.viewCount })}</span>
             <span>{t("properties.sent", { n: property.sentCount })}</span>

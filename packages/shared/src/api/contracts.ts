@@ -186,6 +186,9 @@ export interface PropertyDto {
   hasSeaView: boolean;
   hasPool: boolean;
   hasGarden: boolean;
+  /** Autopost to Instagram when the listing is published (or shared manually). */
+  shareOnInstagram: boolean;
+  shareOnFacebook: boolean;
   viewCount: number;
   sentCount: number;
   favoriteCount: number;

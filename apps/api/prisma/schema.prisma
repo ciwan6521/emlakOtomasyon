@@ -675,6 +675,8 @@ model Property {
   hasSeaView  Boolean        @default(false)
   hasPool     Boolean        @default(false)
   hasGarden   Boolean        @default(false)
+  shareOnInstagram Boolean   @default(true)
+  shareOnFacebook  Boolean   @default(true)
   viewCount   Int            @default(0)
   sentCount   Int            @default(0)
   favoriteCount Int          @default(0)

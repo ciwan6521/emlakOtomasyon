@@ -204,6 +204,8 @@ export class CallAssistService {
       hasSeaView: !!p.hasSeaView,
       hasPool: !!p.hasPool,
       hasGarden: !!p.hasGarden,
+      shareOnInstagram: p.shareOnInstagram ?? true,
+      shareOnFacebook: p.shareOnFacebook ?? true,
       viewCount: p.viewCount ?? 0,
       sentCount: p.sentCount ?? 0,
       favoriteCount: p.favoriteCount ?? 0,

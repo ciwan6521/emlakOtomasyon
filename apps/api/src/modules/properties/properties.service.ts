@@ -145,6 +145,8 @@ export class PropertiesService {
       hasSeaView: !!p.hasSeaView,
       hasPool: !!p.hasPool,
       hasGarden: !!p.hasGarden,
+      shareOnInstagram: p.shareOnInstagram ?? true,
+      shareOnFacebook: p.shareOnFacebook ?? true,
       viewCount: p.viewCount ?? 0,
       sentCount: p.sentCount ?? 0,
       favoriteCount: p.favoriteCount ?? 0,
@@ -208,6 +210,8 @@ export class PropertiesService {
         hasSeaView: dto.hasSeaView ?? false,
         hasPool: dto.hasPool ?? false,
         hasGarden: dto.hasGarden ?? false,
+        shareOnInstagram: dto.shareOnInstagram ?? true,
+        shareOnFacebook: dto.shareOnFacebook ?? true,
         ownerName: dto.ownerName,
         ownerPhone: dto.ownerPhone,
         ownerEmail: dto.ownerEmail,
@@ -528,6 +532,31 @@ export class PropertiesService {
       propertyId: id,
     });
     return this.toDtoAsync(p);
+  }
+
+  /**
+   * Queues a social post for an already-published listing — used when the
+   * agent enables a channel after publishing or wants to share again.
+   */
+  async share(id: string): Promise<{ queued: boolean; reason?: string }> {
+    const { companyId } = TenantStore.require();
+    const current = await this.db.property.findFirst({
+      where: { id },
+      include: { _count: { select: { media: true } } },
+    });
+    if (!current) throw new NotFoundException("Property not found");
+    if (current.status !== PropertyStatus.ACTIVE_LISTING)
+      throw new BadRequestException("Only published listings can be shared");
+    if (current._count.media === 0)
+      throw new BadRequestException("Cannot share a property without media");
+    if (!current.shareOnInstagram && !current.shareOnFacebook)
+      throw new BadRequestException("No social channel enabled for this listing");
+
+    await this.queue.enqueue(QueueName.SOCIAL, "share-now", {
+      companyId,
+      propertyId: id,
+    });
+    return { queued: true };
   }
 
   async addMedia(id: string, dto: AddMediaDto) {

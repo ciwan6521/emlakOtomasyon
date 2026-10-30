@@ -38,7 +38,11 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
         await this.schedulePriceRepost(job.data.companyId, job.data.propertyId);
         return;
       }
-      await this.autopost(job.data.companyId, job.data.propertyId);
+      await this.autopost(
+        job.data.companyId,
+        job.data.propertyId,
+        job.name === "share-now",
+      );
     });
     this.timer = setInterval(() => {
       this.publishDuePosts().catch((err) =>
@@ -56,7 +60,16 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
-  private async autopost(companyId: string, propertyId: string): Promise<void> {
+  /**
+   * Creates the main post for a listing plus its repost chain. `force` (the
+   * manual "share now" action) always creates a fresh immediate post even if
+   * one was already published.
+   */
+  private async autopost(
+    companyId: string,
+    propertyId: string,
+    force = false,
+  ): Promise<void> {
     const property = await this.prisma.property.findFirst({
       where: { id: propertyId, companyId },
       include: {
@@ -69,19 +82,31 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
     });
     if (!property) return;
 
-    const existingMain = await this.prisma.socialPost.findFirst({
-      where: {
-        companyId,
-        propertyId,
-        repostOfId: null,
-        repostStrategy: null,
-        deletedAt: null,
-        status: {
-          in: [SocialPostStatus.SCHEDULED, SocialPostStatus.PUBLISHED],
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const channels: SocialChannel[] = [];
+    if (property.shareOnInstagram) channels.push(SocialChannel.INSTAGRAM);
+    if (property.shareOnFacebook) channels.push(SocialChannel.FACEBOOK);
+    if (channels.length === 0) {
+      this.logger.debug(
+        `Skipping social post for ${property.reference}: no channel enabled`,
+      );
+      return;
+    }
+
+    const existingMain = force
+      ? null
+      : await this.prisma.socialPost.findFirst({
+          where: {
+            companyId,
+            propertyId,
+            repostOfId: null,
+            repostStrategy: null,
+            deletedAt: null,
+            status: {
+              in: [SocialPostStatus.SCHEDULED, SocialPostStatus.PUBLISHED],
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        });
     if (existingMain) {
       await this.scheduleRepostChain(
         companyId,
@@ -89,14 +114,13 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
         existingMain.id,
         existingMain.caption,
         existingMain.mediaUrls,
-        existingMain.channels as SocialChannel[],
+        channels,
       );
       return;
     }
 
     const caption = buildListingCaption(property);
     const mediaUrls = property.media.map((m) => m.url);
-    const channels = [SocialChannel.INSTAGRAM, SocialChannel.FACEBOOK];
 
     const main = await this.prisma.socialPost.create({
       data: {
@@ -167,6 +191,7 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
       where: { id: propertyId, companyId },
     });
     if (!property) return;
+    if (!property.shareOnInstagram && !property.shareOnFacebook) return;
 
     const pending = await this.prisma.socialPost.count({
       where: {

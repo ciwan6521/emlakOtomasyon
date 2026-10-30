@@ -35,6 +35,7 @@ import {
   RentalTermType,
   type PropertyDto,
 } from "@reos/shared";
+import { SocialShareFields } from "./social-share-fields";
 
 const AMENITIES = [
   "hasElevator",
@@ -78,6 +79,8 @@ const EMPTY_FORM = {
   hasSeaView: false,
   hasPool: false,
   hasGarden: false,
+  shareOnInstagram: true,
+  shareOnFacebook: true,
 };
 
 function num(value: string): number | undefined {
@@ -146,6 +149,8 @@ export function NewPropertyDialog({
         hasSeaView: form.hasSeaView,
         hasPool: form.hasPool,
         hasGarden: form.hasGarden,
+        shareOnInstagram: form.shareOnInstagram,
+        shareOnFacebook: form.shareOnFacebook,
       }),
     onSuccess: (property) => {
       qc.invalidateQueries({ queryKey: ["properties"] });
@@ -487,6 +492,14 @@ export function NewPropertyDialog({
               onChange={(ev) => field("description")(ev.target.value)}
             />
           </div>
+
+          <SocialShareFields
+            value={{
+              shareOnInstagram: form.shareOnInstagram,
+              shareOnFacebook: form.shareOnFacebook,
+            }}
+            onChange={(next) => setForm((f) => ({ ...f, ...next }))}
+          />
 
           <div className="sm:col-span-2 border-t pt-3">
             <p className="mb-2 text-sm font-medium">{t("property.owner")}</p>

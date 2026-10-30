@@ -53,6 +53,8 @@ export class CreatePropertyDto {
   @IsOptional() @IsBoolean() hasSeaView?: boolean;
   @IsOptional() @IsBoolean() hasPool?: boolean;
   @IsOptional() @IsBoolean() hasGarden?: boolean;
+  @IsOptional() @IsBoolean() shareOnInstagram?: boolean;
+  @IsOptional() @IsBoolean() shareOnFacebook?: boolean;
   @IsString() @MaxLength(160) ownerName!: string;
   @IsString() @MaxLength(40) ownerPhone!: string;
   @IsOptional() @IsString() ownerEmail?: string;
@@ -85,6 +87,8 @@ export class UpdatePropertyDto {
   @IsOptional() @IsBoolean() hasSeaView?: boolean;
   @IsOptional() @IsBoolean() hasPool?: boolean;
   @IsOptional() @IsBoolean() hasGarden?: boolean;
+  @IsOptional() @IsBoolean() shareOnInstagram?: boolean;
+  @IsOptional() @IsBoolean() shareOnFacebook?: boolean;
 }
 
 export class TransitionPropertyDto {
