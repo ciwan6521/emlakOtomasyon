@@ -327,6 +327,7 @@ function PropertiesPageInner() {
                   fill
                   className="object-cover"
                   sizes="320px"
+                  unoptimized
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
