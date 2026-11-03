@@ -230,31 +230,89 @@ export class SocialAdapter {
       return { ok: true, externalId: res.id, permalink: this.fbUrl(res.id) };
     }
 
+    // Facebook often ignores JSON `url` on /photos (text-only Page post).
+    // Upload the bytes as multipart instead; Instagram already fetched the
+    // public URL, so this only applies to Facebook.
     if (images.length === 1) {
-      const res = await this.graphPost<{ id: string; post_id?: string }>(
-        `${pageId}/photos`,
-        { url: images[0], caption: input.caption },
-      );
+      const res = await this.facebookUploadPhoto(pageId, images[0], {
+        caption: input.caption,
+        published: true,
+      });
       const id = res.post_id ?? res.id;
       return { ok: true, externalId: id, permalink: this.fbUrl(id) };
     }
 
-    // Multi-photo post: upload each photo unpublished, then attach them all
-    // to a single feed post.
     const photoIds: string[] = [];
     for (const url of images.slice(0, IG_CAROUSEL_MAX)) {
-      const res = await this.graphPost<{ id: string }>(`${pageId}/photos`, {
-        url,
+      const res = await this.facebookUploadPhoto(pageId, url, {
         published: false,
       });
       photoIds.push(res.id);
     }
-    const body: Record<string, string> = { message: input.caption };
+    const form = new URLSearchParams();
+    form.set("message", input.caption);
+    form.set("access_token", this.token ?? "");
     photoIds.forEach((id, i) => {
-      body[`attached_media[${i}]`] = JSON.stringify({ media_fbid: id });
+      form.set(`attached_media[${i}]`, JSON.stringify({ media_fbid: id }));
     });
-    const post = await this.graphPost<{ id: string }>(`${pageId}/feed`, body);
+    const post = await this.graphForm<{ id: string }>(`${pageId}/feed`, form);
     return { ok: true, externalId: post.id, permalink: this.fbUrl(post.id) };
+  }
+
+  private async facebookUploadPhoto(
+    pageId: string,
+    imageUrl: string,
+    opts: { caption?: string; published: boolean },
+  ): Promise<{ id: string; post_id?: string }> {
+    const file = await this.fetchImage(imageUrl);
+    const form = new FormData();
+    form.set("access_token", this.token ?? "");
+    form.set("published", opts.published ? "true" : "false");
+    if (opts.caption) form.set("caption", opts.caption);
+    form.set(
+      "source",
+      new Blob([file.bytes], { type: file.contentType }),
+      file.filename,
+    );
+    const res = await fetch(`${GRAPH}/${pageId}/photos`, {
+      method: "POST",
+      body: form,
+    });
+    return this.parse(res, `POST ${pageId}/photos`);
+  }
+
+  /** Prefer the internal MinIO URL so the worker does not hairpin through nginx. */
+  private rewriteMediaUrl(url: string): string {
+    const pub = (process.env.S3_PUBLIC_URL ?? "").replace(/\/$/, "");
+    const endpoint = (process.env.S3_ENDPOINT ?? "").replace(/\/$/, "");
+    if (pub && endpoint && url.startsWith(pub)) {
+      return endpoint + url.slice(pub.length);
+    }
+    return url;
+  }
+
+  private async fetchImage(url: string): Promise<{
+    bytes: Uint8Array;
+    contentType: string;
+    filename: string;
+  }> {
+    const res = await fetch(this.rewriteMediaUrl(url));
+    if (!res.ok)
+      throw new Error(`Could not fetch listing photo: HTTP ${res.status}`);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    const filename =
+      url.split("/").pop()?.split("?")[0] || "photo.jpg";
+    return { bytes, contentType, filename };
+  }
+
+  private async graphForm<T>(path: string, body: URLSearchParams): Promise<T> {
+    const res = await fetch(`${GRAPH}/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    return this.parse<T>(res, `POST ${path}`);
   }
 
   private fbUrl(postId: string): string {
