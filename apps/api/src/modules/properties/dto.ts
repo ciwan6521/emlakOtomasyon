@@ -3,6 +3,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -115,6 +116,9 @@ export class TranslateDto {
 export class ListPropertiesQuery extends PaginationQuery {
   @IsOptional() @IsEnum(Region) region?: Region;
   @IsOptional() @IsEnum(PropertyStatus) status?: PropertyStatus;
+  @IsOptional() @IsIn(["AVAILABLE", "CLOSED"]) availability?:
+    | "AVAILABLE"
+    | "CLOSED";
   @IsOptional() @IsEnum(PropertyType) type?: PropertyType;
   @IsOptional() @IsEnum(ListingPurpose) purpose?: ListingPurpose;
   @IsOptional() @Type(() => Number) @IsNumber() minPrice?: number;

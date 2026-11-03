@@ -3,7 +3,6 @@ import { OnEvent } from "@nestjs/event-emitter";
 import {
   CallCompletedPayload,
   DealStage,
-  DealStageChangedPayload,
   DeliveryStatus,
   DomainEvent,
   LeadAssignedPayload,
@@ -14,9 +13,6 @@ import {
   NotificationType,
   OnboardingSubmittedPayload,
   QueueName,
-  RepostStrategy,
-  SocialChannel,
-  SocialPostStatus,
   TaskType,
 } from "@reos/shared";
 import { PrismaService } from "../../common/prisma/prisma.service";
@@ -223,43 +219,6 @@ export class AutomationEventHandlers {
         relatedEntityId: payload.leadId,
       },
     });
-  }
-
-  @OnEvent(DomainEvent.DEAL_CLOSED)
-  async onDealClosed(
-    payload: DealStageChangedPayload & { value: number },
-  ): Promise<void> {
-    const deal = await this.prisma.deal.findFirst({
-      where: { id: payload.dealId, companyId: payload.companyId },
-      include: { property: { select: { id: true, title: true } } },
-    });
-    if (!deal?.propertyId) return;
-
-    const original = await this.prisma.socialPost.findFirst({
-      where: {
-        companyId: payload.companyId,
-        propertyId: deal.propertyId,
-        status: SocialPostStatus.PUBLISHED,
-      },
-      orderBy: { publishedAt: "desc" },
-    });
-    if (!original) return;
-
-    await this.prisma.socialPost.create({
-      data: {
-        companyId: payload.companyId,
-        branchId: payload.branchId,
-        propertyId: deal.propertyId,
-        channels: original.channels as SocialChannel[],
-        caption: `SOLD\n\n${original.caption}`,
-        mediaUrls: original.mediaUrls,
-        repostOfId: original.id,
-        repostStrategy: RepostStrategy.PRICE_UPDATE,
-        scheduleAt: new Date(),
-        status: SocialPostStatus.SCHEDULED,
-      },
-    });
-    this.logger.log(`Queued sold repost for property ${deal.propertyId}`);
   }
 
   @OnEvent(AutomationEvent.MAINTENANCE_CREATED)

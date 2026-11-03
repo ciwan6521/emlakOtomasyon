@@ -3,7 +3,18 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Languages, Send, Star, Upload } from "lucide-react";
+import {
+  CheckCircle2,
+  KeyRound,
+  Loader2,
+  Languages,
+  RotateCcw,
+  Send,
+  Star,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import { StatusBadge } from "@/components/status-badge";
 import {
   Dialog,
   DialogContent,
@@ -27,8 +38,10 @@ import { useEnumLabel, useT } from "@/lib/i18n/locale-context";
 import type { MessageKey } from "@/lib/i18n/messages";
 import {
   BuildType,
+  CLOSED_PROPERTY_STATUSES,
   ListingPurpose,
   MediaType,
+  PropertyStatus,
   LOCALES,
   PricePeriod,
   PRICE_PERIOD_SUFFIX,
@@ -224,6 +237,38 @@ export function PropertyDialog({
     },
   });
 
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const transition = useMutation({
+    mutationFn: (to: PropertyStatus) =>
+      api.post<PropertyDto>(`/properties/${property!.id}/transition`, { to }),
+    onMutate: () => setStatusError(null),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["properties"] });
+      qc.invalidateQueries({ queryKey: ["property", property?.id] });
+    },
+    onError: (err) =>
+      setStatusError(
+        err instanceof ApiClientError
+          ? err.error.detail || err.error.title
+          : t("common.error"),
+      ),
+  });
+
+  const remove = useMutation({
+    mutationFn: () => api.delete(`/properties/${property!.id}`),
+    onMutate: () => setStatusError(null),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["properties"] });
+      onOpenChange(false);
+    },
+    onError: (err) =>
+      setStatusError(
+        err instanceof ApiClientError
+          ? err.error.detail || err.error.title
+          : t("common.error"),
+      ),
+  });
+
   const translate = useMutation({
     mutationFn: () =>
       api.post(`/properties/${property!.id}/translate`, {
@@ -285,6 +330,9 @@ export function PropertyDialog({
 
   if (!property) return null;
   const isRental = detail.data?.purpose === ListingPurpose.RENT;
+  const currentStatus = detail.data?.status ?? property.status;
+  const isClosed = CLOSED_PROPERTY_STATUSES.includes(currentStatus);
+  const purpose = detail.data?.purpose ?? property.purpose;
   const priceSuffix =
     form.pricePeriod === PricePeriod.MONTHLY ||
     form.pricePeriod === PricePeriod.NIGHTLY ||
@@ -301,6 +349,78 @@ export function PropertyDialog({
           </DialogTitle>
           <DialogDescription>{t("property.manageSubtitle")}</DialogDescription>
         </DialogHeader>
+
+        <div className="space-y-2 rounded-md border p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Label>{t("property.status")}:</Label>
+            <StatusBadge value={currentStatus} />
+            <div className="ml-auto flex flex-wrap gap-2">
+              {isClosed ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={transition.isPending}
+                  onClick={() =>
+                    transition.mutate(PropertyStatus.ACTIVE_LISTING)
+                  }
+                >
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                  {t("property.reopen")}
+                </Button>
+              ) : (
+                <>
+                  {purpose !== ListingPurpose.RENT && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={transition.isPending}
+                      onClick={() => transition.mutate(PropertyStatus.SOLD)}
+                    >
+                      <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                      {t("property.markSold")}
+                    </Button>
+                  )}
+                  {purpose !== ListingPurpose.SALE && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={transition.isPending}
+                      onClick={() => transition.mutate(PropertyStatus.RENTED)}
+                    >
+                      <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                      {t("property.markRented")}
+                    </Button>
+                  )}
+                </>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                disabled={remove.isPending}
+                onClick={() =>
+                  confirm(
+                    t("property.confirmDelete", {
+                      reference: property.reference,
+                    }),
+                  ) && remove.mutate()
+                }
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                {t("property.delete")}
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {t("property.closedHint")}
+          </p>
+          {statusError && (
+            <p className="text-xs text-destructive">{statusError}</p>
+          )}
+        </div>
 
         <div className="grid gap-4 py-2 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">

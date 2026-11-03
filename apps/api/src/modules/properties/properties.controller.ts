@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -61,6 +62,15 @@ export class PropertiesController {
   })
   update(@Param("id") id: string, @Body() dto: UpdatePropertyDto) {
     return this.properties.update(id, dto);
+  }
+
+  @Delete(":id")
+  @RequirePermissions({
+    permission: Permission.PROPERTY_PUBLISH,
+    scope: Scope.BRANCH,
+  })
+  remove(@Param("id") id: string) {
+    return this.properties.remove(id);
   }
 
   @Post(":id/transition")

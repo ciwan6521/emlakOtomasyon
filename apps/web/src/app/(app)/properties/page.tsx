@@ -33,6 +33,7 @@ import type { MessageKey } from "@/lib/i18n/messages";
 import { formatPriceWithPeriod } from "@/lib/utils";
 import {
   BuildType,
+  CLOSED_PROPERTY_STATUSES,
   ListingPurpose,
   PropertyStatus,
   Region,
@@ -76,7 +77,7 @@ function PropertiesPageInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [region, setRegion] = useState("ALL");
-  const [status, setStatus] = useState("ALL");
+  const [status, setStatus] = useState("AVAILABLE");
   const [purpose, setPurpose] = useState("ALL");
   const [buildType, setBuildType] = useState("ALL");
   const [minPrice, setMinPrice] = useState("");
@@ -122,7 +123,9 @@ function PropertiesPageInner() {
     queryFn: () => {
       const params = new URLSearchParams({ pageSize: "60" });
       if (region !== "ALL") params.set("region", region);
-      if (status !== "ALL") params.set("status", status);
+      if (status === "AVAILABLE" || status === "CLOSED")
+        params.set("availability", status);
+      else if (status !== "ALL") params.set("status", status);
       if (purpose !== "ALL") params.set("purpose", purpose);
       if (buildType !== "ALL") params.set("buildType", buildType);
       if (minPrice) params.set("minPrice", minPrice);
@@ -212,10 +215,12 @@ function PropertiesPageInner() {
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-60">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="AVAILABLE">{t("properties.available")}</SelectItem>
+            <SelectItem value="CLOSED">{t("properties.closed")}</SelectItem>
             <SelectItem value="ALL">{t("properties.allStatuses")}</SelectItem>
             {Object.values(PropertyStatus).map((s) => (
               <SelectItem key={s} value={s}>
@@ -429,7 +434,7 @@ function PropertiesPageInner() {
                   {t("properties.manage")}
                 </Button>
                 {p.status !== PropertyStatus.ACTIVE_LISTING &&
-                  p.status !== PropertyStatus.SOLD && (
+                  !CLOSED_PROPERTY_STATUSES.includes(p.status) && (
                     <Button
                       size="sm"
                       className="flex-1"

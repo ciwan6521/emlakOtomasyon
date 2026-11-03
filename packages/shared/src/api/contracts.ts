@@ -209,6 +209,8 @@ export interface PropertyDto {
 export interface PropertyFilter {
   region?: Region;
   status?: PropertyStatus;
+  /** AVAILABLE hides sold/rented listings, CLOSED shows only them. */
+  availability?: "AVAILABLE" | "CLOSED";
   type?: PropertyType;
   purpose?: ListingPurpose;
   minPrice?: number;

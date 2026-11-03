@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import {
+  CLOSED_PROPERTY_STATUSES,
   DomainEvent,
   NotificationType,
   Paginated,
@@ -13,6 +14,7 @@ import {
   PropertyStatus,
   QueueName,
   SocialChannel,
+  SocialPostStatus,
 } from "@reos/shared";
 import { customAlphabet } from "nanoid";
 import { socialPostUrl } from "../social/domain/social-links";
@@ -246,6 +248,10 @@ export class PropertiesService {
     const where: Record<string, unknown> = {};
     if (query.region) where.region = query.region;
     if (query.status) where.status = query.status;
+    else if (query.availability === "AVAILABLE")
+      where.status = { notIn: CLOSED_PROPERTY_STATUSES };
+    else if (query.availability === "CLOSED")
+      where.status = { in: CLOSED_PROPERTY_STATUSES };
     if (query.type) where.type = query.type;
     if (query.purpose) where.purpose = query.purpose;
     if (query.rooms) where.rooms = query.rooms;
@@ -478,6 +484,17 @@ export class PropertiesService {
       },
       include: { media: true, _count: { select: { media: true } } },
     });
+    if (CLOSED_PROPERTY_STATUSES.includes(dto.to)) {
+      await this.prisma.socialPost.updateMany({
+        where: {
+          companyId,
+          propertyId: id,
+          status: SocialPostStatus.SCHEDULED,
+          deletedAt: null,
+        },
+        data: { deletedAt: new Date() },
+      });
+    }
     this.events.publish(DomainEvent.PROPERTY_STATUS_CHANGED, {
       companyId,
       branchId,
@@ -553,6 +570,27 @@ export class PropertiesService {
       propertyId: id,
     });
     return { queued: true };
+  }
+
+  /** Soft-deletes the listing and drops any social posts still waiting to go out. */
+  async remove(id: string): Promise<{ deleted: true }> {
+    const { companyId } = TenantStore.require();
+    await this.ensureExists(id);
+    const now = new Date();
+    await this.db.property.update({
+      where: { id },
+      data: { deletedAt: now },
+    });
+    await this.prisma.socialPost.updateMany({
+      where: {
+        companyId,
+        propertyId: id,
+        status: SocialPostStatus.SCHEDULED,
+        deletedAt: null,
+      },
+      data: { deletedAt: now },
+    });
+    return { deleted: true };
   }
 
   async addMedia(id: string, dto: AddMediaDto) {

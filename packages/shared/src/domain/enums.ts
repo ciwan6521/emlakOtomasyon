@@ -117,14 +117,22 @@ export enum PropertyStatus {
   RENTED = "RENTED",
 }
 
+/** Sold / rented listings are hidden from availability searches and matching. */
+export const CLOSED_PROPERTY_STATUSES: PropertyStatus[] = [
+  PropertyStatus.SOLD,
+  PropertyStatus.RENTED,
+];
+
+const CLOSE = [PropertyStatus.SOLD, PropertyStatus.RENTED];
+
 export const PROPERTY_TRANSITIONS: Record<PropertyStatus, PropertyStatus[]> = {
-  [PropertyStatus.NEW]: [PropertyStatus.CONTACTED],
-  [PropertyStatus.CONTACTED]: [PropertyStatus.NEGOTIATION],
-  [PropertyStatus.NEGOTIATION]: [PropertyStatus.ACCEPTED],
-  [PropertyStatus.ACCEPTED]: [PropertyStatus.ONBOARDING_PENDING],
-  [PropertyStatus.ONBOARDING_PENDING]: [PropertyStatus.ACTIVE_LISTING],
-  [PropertyStatus.ACTIVE_LISTING]: [PropertyStatus.SOLD, PropertyStatus.RENTED],
-  [PropertyStatus.SOLD]: [],
+  [PropertyStatus.NEW]: [PropertyStatus.CONTACTED, ...CLOSE],
+  [PropertyStatus.CONTACTED]: [PropertyStatus.NEGOTIATION, ...CLOSE],
+  [PropertyStatus.NEGOTIATION]: [PropertyStatus.ACCEPTED, ...CLOSE],
+  [PropertyStatus.ACCEPTED]: [PropertyStatus.ONBOARDING_PENDING, ...CLOSE],
+  [PropertyStatus.ONBOARDING_PENDING]: [PropertyStatus.ACTIVE_LISTING, ...CLOSE],
+  [PropertyStatus.ACTIVE_LISTING]: CLOSE,
+  [PropertyStatus.SOLD]: [PropertyStatus.ACTIVE_LISTING],
   [PropertyStatus.RENTED]: [PropertyStatus.ACTIVE_LISTING],
 };
 
