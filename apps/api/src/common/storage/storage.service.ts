@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import {
   CreateBucketCommand,
   HeadBucketCommand,
+  PutBucketCorsCommand,
   PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client,
@@ -23,6 +24,8 @@ export interface PresignResult {
 export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
   private readonly client: S3Client;
+  /** Signs browser upload URLs against the public HTTPS host, not the internal Docker one. */
+  private readonly signClient: S3Client;
   private readonly bucket: string;
   private readonly endpoint: string;
   private readonly forcePathStyle: boolean;
@@ -33,15 +36,32 @@ export class StorageService implements OnModuleInit {
     this.bucket = this.config.get<string>("s3.bucket")!;
     this.forcePathStyle = this.config.get<boolean>("s3.forcePathStyle") ?? true;
     this.publicBaseUrl = process.env.S3_PUBLIC_URL ?? this.endpoint;
+    const credentials = {
+      accessKeyId: this.config.get<string>("s3.accessKey")!,
+      secretAccessKey: this.config.get<string>("s3.secretKey")!,
+    };
+    const region = this.config.get<string>("s3.region")!;
     this.client = new S3Client({
-      region: this.config.get<string>("s3.region")!,
+      region,
       endpoint: this.endpoint,
       forcePathStyle: this.forcePathStyle,
-      credentials: {
-        accessKeyId: this.config.get<string>("s3.accessKey")!,
-        secretAccessKey: this.config.get<string>("s3.secretKey")!,
-      },
+      credentials,
     });
+    // getSignedUrl embeds the client endpoint in the URL. Signing with
+    // http://minio:9000 makes the browser PUT over HTTP (mixed content) to a
+    // host it cannot reach. Use the public media origin when it is HTTPS.
+    const signEndpoint = this.publicBaseUrl.startsWith("https://")
+      ? this.publicBaseUrl
+      : this.endpoint;
+    this.signClient =
+      signEndpoint === this.endpoint
+        ? this.client
+        : new S3Client({
+            region,
+            endpoint: signEndpoint,
+            forcePathStyle: this.forcePathStyle,
+            credentials,
+          });
   }
 
   async onModuleInit(): Promise<void> {
@@ -62,6 +82,7 @@ export class StorageService implements OnModuleInit {
       }
     }
     await this.ensurePublicRead();
+    await this.ensureCors();
   }
 
   private async ensurePublicRead(): Promise<void> {
@@ -91,6 +112,37 @@ export class StorageService implements OnModuleInit {
     }
   }
 
+  private async ensureCors(): Promise<void> {
+    const origins = [
+      process.env.APP_URL,
+      ...(process.env.API_CORS_ORIGINS ?? "").split(","),
+    ]
+      .map((o) => o?.trim())
+      .filter((o): o is string => !!o && /^https?:\/\//.test(o));
+    const unique = [...new Set(origins)];
+    if (unique.length === 0) return;
+    try {
+      await this.client.send(
+        new PutBucketCorsCommand({
+          Bucket: this.bucket,
+          CORSConfiguration: {
+            CORSRules: [
+              {
+                AllowedOrigins: unique,
+                AllowedMethods: ["GET", "PUT", "HEAD"],
+                AllowedHeaders: ["*"],
+                ExposeHeaders: ["ETag", "x-amz-request-id"],
+                MaxAgeSeconds: 3600,
+              },
+            ],
+          },
+        }),
+      );
+    } catch (err) {
+      this.logger.warn(`Could not set bucket CORS: ${(err as Error).message}`);
+    }
+  }
+
   async presignUpload(params: {
     prefix: string;
     filename: string;
@@ -101,7 +153,7 @@ export class StorageService implements OnModuleInit {
     const key = `${params.prefix.replace(/(^\/|\/$)/g, "")}/${randomUUID()}${ext}`;
     const expiresIn = params.expiresInSeconds ?? 900;
     const uploadUrl = await getSignedUrl(
-      this.client,
+      this.signClient,
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
