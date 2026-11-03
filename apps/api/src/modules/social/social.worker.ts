@@ -4,12 +4,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
-import {
-  QueueName,
-  RepostStrategy,
-  SocialChannel,
-  SocialPostStatus,
-} from "@reos/shared";
+import { QueueName, SocialChannel, SocialPostStatus } from "@reos/shared";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { QueueService } from "../../common/queue/queue.service";
 import { SocialAdapter } from "../integrations/social.adapter";
@@ -34,10 +29,8 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     this.queue.registerWorker<SocialJob>(QueueName.SOCIAL, async (job) => {
-      if (job.name === "price-repost") {
-        await this.schedulePriceRepost(job.data.companyId, job.data.propertyId);
-        return;
-      }
+      // Automatic reposts were removed; drain any jobs still queued.
+      if (job.name === "price-repost") return;
       await this.autopost(
         job.data.companyId,
         job.data.propertyId,
@@ -51,9 +44,7 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
         ),
       );
     }, 60_000);
-    this.logger.log(
-      "Social worker registered (autopost + repost chain + scheduler)",
-    );
+    this.logger.log("Social worker registered (autopost + scheduler)");
   }
 
   onModuleDestroy(): void {
@@ -61,9 +52,8 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Creates the main post for a listing plus its repost chain. `force` (the
-   * manual "share now" action) always creates a fresh immediate post even if
-   * one was already published.
+   * Posts a listing once when it is published. Later posts only happen through
+   * the manual "share now" action (`force`), which always creates a fresh one.
    */
   private async autopost(
     companyId: string,
@@ -107,128 +97,15 @@ export class SocialWorker implements OnModuleInit, OnModuleDestroy {
           },
           orderBy: { createdAt: "desc" },
         });
-    if (existingMain) {
-      await this.scheduleRepostChain(
-        companyId,
-        propertyId,
-        existingMain.id,
-        existingMain.caption,
-        existingMain.mediaUrls,
-        channels,
-      );
-      return;
-    }
+    if (existingMain) return;
 
-    const caption = buildListingCaption(property);
-    const mediaUrls = property.media.map((m) => m.url);
-
-    const main = await this.prisma.socialPost.create({
-      data: {
-        companyId,
-        propertyId,
-        channels,
-        caption,
-        mediaUrls,
-        status: SocialPostStatus.SCHEDULED,
-        scheduleAt: new Date(),
-      },
-    });
-
-    await this.scheduleRepostChain(
-      companyId,
-      propertyId,
-      main.id,
-      caption,
-      mediaUrls,
-      channels,
-    );
-  }
-
-  private async scheduleRepostChain(
-    companyId: string,
-    propertyId: string,
-    originalId: string,
-    caption: string,
-    mediaUrls: string[],
-    channels: SocialChannel[],
-  ): Promise<void> {
-    const strategies = [
-      { strategy: RepostStrategy.D1, delayMs: 86400_000 },
-      { strategy: RepostStrategy.D7, delayMs: 7 * 86400_000 },
-    ];
-    for (const { strategy, delayMs } of strategies) {
-      const exists = await this.prisma.socialPost.count({
-        where: {
-          companyId,
-          propertyId,
-          repostOfId: originalId,
-          repostStrategy: strategy,
-          deletedAt: null,
-        },
-      });
-      if (exists > 0) continue;
-      await this.prisma.socialPost.create({
-        data: {
-          companyId,
-          propertyId,
-          channels,
-          caption,
-          mediaUrls,
-          repostOfId: originalId,
-          repostStrategy: strategy,
-          status: SocialPostStatus.SCHEDULED,
-          scheduleAt: new Date(Date.now() + delayMs),
-        },
-      });
-    }
-  }
-
-  private async schedulePriceRepost(
-    companyId: string,
-    propertyId: string,
-  ): Promise<void> {
-    const property = await this.prisma.property.findFirst({
-      where: { id: propertyId, companyId },
-    });
-    if (!property) return;
-    if (!property.shareOnInstagram && !property.shareOnFacebook) return;
-
-    const pending = await this.prisma.socialPost.count({
-      where: {
-        companyId,
-        propertyId,
-        repostStrategy: RepostStrategy.PRICE_UPDATE,
-        status: SocialPostStatus.SCHEDULED,
-        deletedAt: null,
-      },
-    });
-    if (pending > 0) return;
-
-    const original = await this.prisma.socialPost.findFirst({
-      where: {
-        companyId,
-        propertyId,
-        repostOfId: null,
-        repostStrategy: null,
-        status: {
-          in: [SocialPostStatus.PUBLISHED, SocialPostStatus.SCHEDULED],
-        },
-        deletedAt: null,
-      },
-      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    });
-    if (!original) return;
-
-    const caption = buildListingCaption(property, { priceUpdate: true });
     await this.prisma.socialPost.create({
       data: {
         companyId,
         propertyId,
-        channels: original.channels as SocialChannel[],
-        caption,
-        mediaUrls: original.mediaUrls,
-        repostOfId: original.id,
-        repostStrategy: RepostStrategy.PRICE_UPDATE,
+        channels,
+        caption: buildListingCaption(property),
+        mediaUrls: property.media.map((m) => m.url),
         status: SocialPostStatus.SCHEDULED,
         scheduleAt: new Date(),
       },

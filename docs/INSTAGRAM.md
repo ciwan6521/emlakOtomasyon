@@ -11,8 +11,8 @@ one-time setup.
 - When a listing is published (`POST /properties/:id/publish`) the social
   worker creates a post with the cover photo plus up to 9 more photos (a
   carousel), a caption built from the listing (type, district, rooms, m²,
-  price, features, description, reference and hashtags) and schedules reposts
-  after 1 and 7 days. Price changes trigger a "new price" repost.
+  price, features, description, reference and hashtags). There are no
+  automatic reposts; use **Share now** in the listing dialog to post again.
 - Posts are visible under **Social** in the app and the published permalink is
   shown on the listing card (Instagram / Facebook links).
 - Until `INTEGRATIONS_MODE=live` and the Meta variables are set, posts are

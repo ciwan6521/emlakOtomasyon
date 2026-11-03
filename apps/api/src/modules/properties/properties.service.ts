@@ -448,10 +448,6 @@ export class PropertiesService {
           link: `/properties`,
         });
       }
-      await this.queue.enqueue(QueueName.SOCIAL, "price-repost", {
-        companyId,
-        propertyId: id,
-      });
     }
 
     return this.toDtoAsync(p);
