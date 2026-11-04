@@ -47,6 +47,9 @@ const en = {
   "property.createTitle": "New listing",
   "property.createSubtitle":
     "Enter the listing and owner details. You can upload photos right after saving.",
+  "property.reference": "Listing ID",
+  "property.referencePlaceholder": "Leave blank to assign automatically",
+  "property.referenceTaken": "This listing ID is already in use.",
   "property.title": "Title",
   "property.titlePlaceholder": "e.g. 2+1 apartment in City Kvart",
   "property.type": "Property type",
@@ -143,6 +146,9 @@ export const propertiesPack = definePack(en, {
     "property.createTitle": "Novi oglas",
     "property.createSubtitle":
       "Unesite podatke o nekretnini i vlasniku. Fotografije možete dodati odmah nakon čuvanja.",
+    "property.reference": "Šifra oglasa",
+    "property.referencePlaceholder": "Ostavite prazno da sistem dodijeli",
+    "property.referenceTaken": "Ova šifra oglasa je već zauzeta.",
     "property.title": "Naslov",
     "property.titlePlaceholder": "npr. Dvosoban stan u City kvartu",
     "property.type": "Tip nekretnine",
@@ -238,6 +244,9 @@ export const propertiesPack = definePack(en, {
     "property.createTitle": "Yeni ilan",
     "property.createSubtitle":
       "İlan ve mal sahibi bilgilerini girin. Kaydettikten hemen sonra fotoğraf yükleyebilirsiniz.",
+    "property.reference": "İlan no",
+    "property.referencePlaceholder": "Boş bırakırsanız sistem verir",
+    "property.referenceTaken": "Bu ilan numarası zaten kullanılıyor.",
     "property.title": "Başlık",
     "property.titlePlaceholder": "örn. City Kvart'ta 2+1 daire",
     "property.type": "Gayrimenkul tipi",
@@ -333,6 +342,9 @@ export const propertiesPack = definePack(en, {
     "property.createTitle": "Новый объект",
     "property.createSubtitle":
       "Введите данные об объекте и собственнике. Фото можно загрузить сразу после сохранения.",
+    "property.reference": "Номер объекта",
+    "property.referencePlaceholder": "Оставьте пустым — система присвоит сама",
+    "property.referenceTaken": "Этот номер объекта уже занят.",
     "property.title": "Название",
     "property.titlePlaceholder": "напр. Квартира 2+1 в City Kvart",
     "property.type": "Тип недвижимости",

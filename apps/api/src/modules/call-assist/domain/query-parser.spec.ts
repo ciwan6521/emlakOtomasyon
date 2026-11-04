@@ -28,6 +28,16 @@ describe("parseListingQuery", () => {
     expect(p.budgetMax).toBe(250_000);
   });
 
+  it("recognizes named complexes before the generic city keyword", () => {
+    expect(parseListingQuery("central point 1+1").region).toBe(
+      Region.CENTRAL_POINT,
+    );
+    expect(parseListingQuery("new city stan").region).toBe(Region.NEW_CITY);
+    expect(parseListingQuery("dalmatinska 2+1").region).toBe(
+      Region.DALMATINSKA,
+    );
+  });
+
   it('recognizes multi-word region "stari aerodrom"', () => {
     expect(parseListingQuery("stari aerodrom apartment").region).toBe(
       Region.STARI_AERODROM,

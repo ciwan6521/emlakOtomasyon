@@ -25,10 +25,20 @@ import {
 import { PaginationQuery } from "../../common/http/pagination";
 
 export class CreatePropertyDto {
+  @IsOptional() @IsString() @MaxLength(40) reference?: string;
   @IsString() @MaxLength(180) title!: string;
   @IsEnum(PropertyType) type!: PropertyType;
   @IsEnum(ListingPurpose) purpose!: ListingPurpose;
   @IsEnum(Region) region!: Region;
+  @IsOptional()
+  @IsIn([
+    PropertyStatus.NEW,
+    PropertyStatus.ACTIVE_LISTING,
+    PropertyStatus.RENTED,
+    PropertyStatus.SOLD,
+  ])
+  status?: PropertyStatus;
+  @IsOptional() @IsString() @MaxLength(500) existingInstagramUrl?: string;
   @IsString() @MaxLength(300) address!: string;
   @IsOptional() @IsString() @MaxLength(120) neighborhood?: string;
   @IsOptional() @IsNumber() latitude?: number;

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -64,20 +65,36 @@ export class PropertiesService {
   private async socialUrls(
     propertyId: string,
   ): Promise<{ instagramUrl: string | null; facebookUrl: string | null }> {
+    const map = await this.socialUrlsFor([propertyId]);
+    return map.get(propertyId) ?? { instagramUrl: null, facebookUrl: null };
+  }
+
+  private async socialUrlsFor(
+    propertyIds: string[],
+  ): Promise<
+    Map<string, { instagramUrl: string | null; facebookUrl: string | null }>
+  > {
+    const result = new Map<
+      string,
+      { instagramUrl: string | null; facebookUrl: string | null }
+    >();
+    if (propertyIds.length === 0) return result;
     const posts = await this.db.socialPost.findMany({
-      where: { propertyId, status: "PUBLISHED" },
+      where: { propertyId: { in: propertyIds }, status: "PUBLISHED" },
       orderBy: { publishedAt: "desc" },
-      take: 5,
     });
-    let instagramUrl: string | null = null;
-    let facebookUrl: string | null = null;
     for (const p of posts) {
+      if (!p.propertyId) continue;
+      const current = result.get(p.propertyId) ?? {
+        instagramUrl: null,
+        facebookUrl: null,
+      };
       const refs = (p.externalRefs ?? {}) as Record<string, string>;
-      instagramUrl ??= socialPostUrl(refs, SocialChannel.INSTAGRAM);
-      facebookUrl ??= socialPostUrl(refs, SocialChannel.FACEBOOK);
-      if (instagramUrl && facebookUrl) break;
+      current.instagramUrl ??= socialPostUrl(refs, SocialChannel.INSTAGRAM);
+      current.facebookUrl ??= socialPostUrl(refs, SocialChannel.FACEBOOK);
+      result.set(p.propertyId, current);
     }
-    return { instagramUrl, facebookUrl };
+    return result;
   }
 
   private async userName(
@@ -170,7 +187,12 @@ export class PropertiesService {
 
   async create(dto: CreatePropertyDto): Promise<PropertyDto> {
     const { companyId, branchId, userId } = TenantStore.require();
-    const reference = `${dto.region.slice(0, 3)}-${refId()}`;
+    const reference = await this.resolveReference(dto.reference, dto.region);
+    const status = dto.status ?? PropertyStatus.NEW;
+    const goLive =
+      status === PropertyStatus.ACTIVE_LISTING ||
+      status === PropertyStatus.RENTED ||
+      status === PropertyStatus.SOLD;
     const dedupHash = computeDedupHash({
       phone: dto.ownerPhone,
       address: dto.address,
@@ -183,6 +205,7 @@ export class PropertiesService {
         title: dto.title,
         type: dto.type,
         purpose: dto.purpose,
+        status,
         region: dto.region,
         address: dto.address,
         latitude: dto.latitude,
@@ -223,9 +246,30 @@ export class PropertiesService {
         branchId,
         createdById: userId,
         updatedById: userId,
+        ...(goLive
+          ? {
+              publishedAt: new Date(),
+              publicSlug: slugGen(),
+            }
+          : {}),
       },
       include: { media: true, _count: { select: { media: true } } },
     });
+
+    if (dto.existingInstagramUrl) {
+      await this.db.socialPost.create({
+        data: {
+          companyId: companyId!,
+          propertyId: property.id,
+          channels: [SocialChannel.INSTAGRAM],
+          caption: dto.description ?? dto.title,
+          mediaUrls: [],
+          status: SocialPostStatus.PUBLISHED,
+          publishedAt: new Date(),
+          externalRefs: { INSTAGRAM_URL: dto.existingInstagramUrl },
+        },
+      });
+    }
 
     this.events.publish(DomainEvent.PROPERTY_CREATED, {
       companyId,
@@ -233,15 +277,32 @@ export class PropertiesService {
       propertyId: property.id,
       occurredAt: new Date().toISOString(),
     });
-    await this.queue.enqueue(QueueName.AI, "describe", {
-      companyId,
-      propertyId: property.id,
-    });
-    await this.queue.enqueue(QueueName.MATCHING, "property", {
-      companyId,
-      propertyId: property.id,
-    });
+    if (!dto.description) {
+      await this.queue.enqueue(QueueName.AI, "describe", {
+        companyId,
+        propertyId: property.id,
+      });
+    }
+    if (!CLOSED_PROPERTY_STATUSES.includes(status)) {
+      await this.queue.enqueue(QueueName.MATCHING, "property", {
+        companyId,
+        propertyId: property.id,
+      });
+    }
     return this.toDtoAsync(property);
+  }
+
+  private async resolveReference(
+    requested: string | undefined,
+    region: string,
+  ): Promise<string> {
+    const trimmed = requested?.trim();
+    if (!trimmed) return `${region.slice(0, 3)}-${refId()}`;
+    const exists = await this.db.property.findFirst({
+      where: { reference: trimmed },
+    });
+    if (exists) throw new ConflictException("Listing ID already in use");
+    return trimmed;
   }
 
   async list(query: ListPropertiesQuery): Promise<Paginated<PropertyDto>> {
@@ -315,7 +376,10 @@ export class PropertiesService {
       this.db.property.count({ where }),
     ]);
 
-    const dtos = await Promise.all(rows.map((r) => this.toDtoAsync(r)));
+    const socialById = await this.socialUrlsFor(rows.map((r) => r.id));
+    const dtos = await Promise.all(
+      rows.map((r) => this.toDtoAsync(r, socialById.get(r.id))),
+    );
     return paginate(dtos, total, query.page, query.pageSize);
   }
 

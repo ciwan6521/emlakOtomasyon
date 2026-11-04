@@ -49,6 +49,7 @@ const AMENITIES = [
 type AmenityKey = (typeof AMENITIES)[number];
 
 const EMPTY_FORM = {
+  reference: "",
   title: "",
   type: PropertyType.APARTMENT as PropertyType,
   purpose: ListingPurpose.SALE as ListingPurpose,
@@ -119,6 +120,7 @@ export function NewPropertyDialog({
   const create = useMutation({
     mutationFn: () =>
       api.post<PropertyDto>("/properties", {
+        reference: form.reference.trim() || undefined,
         title: form.title.trim(),
         type: form.type,
         purpose: form.purpose,
@@ -160,10 +162,14 @@ export function NewPropertyDialog({
       onCreated(property);
     },
     onError: (err) => {
-      setError(
+      const detail =
         err instanceof ApiClientError
           ? err.error.detail || err.error.title
-          : t("common.error"),
+          : "";
+      setError(
+        /already in use/i.test(detail)
+          ? t("property.referenceTaken")
+          : detail || t("common.error"),
       );
     },
   });
@@ -189,6 +195,15 @@ export function NewPropertyDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-2 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="np-ref">{t("property.reference")}</Label>
+            <Input
+              id="np-ref"
+              value={form.reference}
+              placeholder={t("property.referencePlaceholder")}
+              onChange={(ev) => field("reference")(ev.target.value)}
+            />
+          </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="np-title">{t("property.title")} *</Label>
             <Input
